@@ -1,0 +1,26 @@
+[submodule "src/libraries/readerwriterqueue"]
+	path = src/libraries/readerwriterqueue
+	url = https://github.com/cameron314/readerwriterqueue.git
+[submodule "src/libraries/tinyfsm"]
+	path = src/libraries/tinyfsm
+	url = https://github.com/digint/tinyfsm.git
+	branch = v0.3.3
+[submodule "src/libraries/MiniPID"]
+	path = src/libraries/MiniPID
+	url = https://github.com/KacperLa/MiniPID
+	branch = adding_cmake_and_getters
+[submodule "src/libraries/msgpack11"]
+	path = src/libraries/msgpack11
+	url = git@github.com:ar90n/msgpack11.git
+[submodule "server/static/panes"]
+	path = server/static/panes
+	url = git@github.com:tech-systems/panes.git
+[submodule "server/static/urdf-loaders"]
+	path = server/static/urdf-loaders
+	url = git@github.com:gkjohnson/urdf-loaders.git
+[submodule "src/libraries/pybind11"]
+	path = src/libraries/pybind11
+	url = git@github.com:pybind/pybind11.git
+[submodule "src/libraries/SData"]
+	path = src/libraries/SData
+	url = git@github.com:KacperLa/SData.git
