@@ -18,7 +18,6 @@ import ThreeView from './threeView.js';
 import OptionsView from './optionsView.js';
 import MovementControlPanel from './movmentControlPanel.js';
 import PlantPanel from './PlantPanel.js';
-import DataPanel from './DataPanel.js';
 import SettingsPanel from './SettingsPanel.js';
 
 function App() {
