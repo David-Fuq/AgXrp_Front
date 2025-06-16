@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { faSignal, faFile, faFlag, faDroplet, faWater, faUpRightAndDownLeftFromCenter } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import './connection.css';
 
+//TODO -> Download data. Should be just missing transform json into file.
 function FileDownloadManager({ packet, setFarmData }) {
     const [downloadStatus, setDownloadStatus] = useState(null);
     const [buffer_data, setBufferData] = useState(new Uint8Array(0));
@@ -113,13 +114,7 @@ function FileDownloadManager({ packet, setFarmData }) {
     ) : null;
 }
 
-function getTimeStamp() {
-    let time = new Date().toLocaleTimeString().split(/:| /);
-    if (time[3] === "PM" && time[0] !== "12") time[0] = Number(time[0]) + 12;
-    let date = new Date().toLocaleDateString().split('/');
-    let day = new Date().getDay();
-    return new Uint8Array([99, +time[2], +time[1], +time[0], day, +date[0], +date[1], +date[2] - 2000]);
-}
+
 
 function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos }) {
     const [port, setPort] = useState(null);
@@ -155,7 +150,6 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
             listenToPort(reader);
 
             await new Promise(res => setTimeout(res, 500));
-            await requestData(3, getTimeStamp());
             await requestData(0);
         } catch (err) {
             console.error('Connection error:', err);
@@ -188,6 +182,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
 
     const sendRobotCmd = async (robotCmd) => {
         console.log(`Sending command: ${robotCmd}`);
+        console.log(`In sendRobotCmd in connection.js`);
         if (!writer) return;
         const cmdBuffer = new Uint16Array(robotCmd);
         await writer.write(new Uint8Array([1, ...new Uint8Array(cmdBuffer.buffer)]));
