@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { faSignal, faFile, faFlag, faDroplet, faWater, faUpRightAndDownLeftFromCenter } from '@fortawesome/free-solid-svg-icons';
+import { faSignal, faFile, faFlag, faDroplet, faWater, faUpRightAndDownLeftFromCenter, faPersonArrowDownToLine } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Button from 'react-bootstrap/Button';
 import './connection.css';
@@ -423,6 +423,9 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
             </Button>
             <Button size="lg" onClick={() => sendCommandWithNewline("6")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faUpRightAndDownLeftFromCenter} /> <span className="button-label">Calibrate gantry size</span>
+            </Button>
+            <Button size="lg" onClick={() => sendCommandWithNewline("11")} variant="outline-light" style={{ margin: '0 5px' }}>
+                <FontAwesomeIcon icon={faPersonArrowDownToLine} /> <span className="button-label">Calibrate gantry size</span>
             </Button>
         </div>
     );
