@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { faSignal, faFile, faFlag, faDroplet, faWater, faUpRightAndDownLeftFromCenter } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Button from 'react-bootstrap/Button';
-import Modal from 'react-bootstrap/Modal';
 import './connection.css';
 
 //TODO -> Download data. Should be just missing transform json into file.
+/*
 function FileDownloadManager({ packet, setFarmData }) {
     const [downloadStatus, setDownloadStatus] = useState(null);
     const [buffer_data, setBufferData] = useState(new Uint8Array(0));
@@ -113,11 +113,13 @@ function FileDownloadManager({ packet, setFarmData }) {
         </div>
     ) : null;
 }
+    */
 
 
 
 function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos }) {
-    const [connected, setConnected] = useState(false);
+    //console.log(robotCmd);
+      const [connected, setConnected] = useState(false);
       const [message, setMessage] = useState('');
       const [logs, setLogs] = useState([]);
       const [busy, setBusy] = useState(false);
@@ -149,6 +151,16 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
       const textDecoder = new TextDecoder();
 
       // Add a log entry
+      useEffect(() => {
+        if (robotCmd != null)
+        {
+            console.log("Robot Command: ", robotCmd); 
+            const sendCmdStr = robotCmd.toString();
+            sendCommandWithNewline(sendCmdStr);
+            addLog(`Sending command: ${sendCmdStr}`, 'sent');
+        }
+    }, [robotCmd]);
+
       const addLog = (message, type = 'system') => {
         setLogs(prevLogs => [...prevLogs, { message, type, timestamp: new Date() }]);
         
@@ -161,11 +173,6 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
       };
 
       // Check if a port matches our XRP devices
-      const checkPortMatching = (port) => {
-        const info = port.getInfo();
-        return (info.usbProductId === USB_PRODUCT_ID && info.usbVendorId === USB_VENDOR_ID) || 
-               (info.usbProductId === USB_PRODUCT_ID_BETA && info.usbVendorId === USB_VENDOR_ID_BETA);
-      };
 
       const connectManually = async () => {
         try {
@@ -241,13 +248,13 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
                 for (const line of lines) {
                 const trimmedLine = line.trim();
                 
-                if (trimmedLine === "JSON_START") {
+                if (trimmedLine === "J") {
                     // Start collecting JSON data
                     collectingJson = true;
                     jsonBuffer = "";
                     continue;
                 } 
-                else if (trimmedLine === "JSON_END") {
+                else if (trimmedLine === "X") {
                     // End of JSON data, process it
                     collectingJson = false;
                     
@@ -387,13 +394,19 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
 
 
 
+//<FileDownloadManager packet={packet} setFarmData={setFarmData} />
 
 
-
-    return (
+    return (        
         <div>
-            <FileDownloadManager packet={packet} setFarmData={setFarmData} />
-            <Button size="lg" onClick={connectManually} variant={isConnected ? "success" : "outline-light"} style={{ margin: '0 5px' }}>
+            <div className="log-container" ref={logContainerRef}>
+            {logs.map((log, index) => (
+              <div key={index} className={`log-entry ${log.type}`}>
+                [{log.timestamp.toLocaleTimeString()}] {log.message}
+              </div>
+            ))}
+          </div>
+            <Button size="lg" onClick={connectManually} variant={connected ? "success" : "outline-light"} style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faSignal} /> <span className="button-text">Connect Robot</span>
             </Button>
             <Button size="lg" onClick={() => sendCommandWithNewline("get_sensor_data")} variant="outline-light" style={{ margin: '0 5px' }}>
@@ -408,7 +421,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
             <Button size="lg" onClick={() => sendCommandWithNewline("get_sensor_data")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faDroplet} /> <span className="button-label">Download watering data</span>
             </Button>
-            <Button size="lg" onClick={() => sendCommandWithNewline("backward")} variant="outline-light" style={{ margin: '0 5px' }}>
+            <Button size="lg" onClick={() => sendCommandWithNewline("6")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faUpRightAndDownLeftFromCenter} /> <span className="button-label">Calibrate gantry size</span>
             </Button>
         </div>

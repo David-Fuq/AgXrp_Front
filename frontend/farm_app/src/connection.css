@@ -24,6 +24,17 @@
     color: rgb(0, 0, 0);
 }
 
+.log-container {
+    height: 100px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    font-family: monospace;
+    background-color: #f0f0f0;
+    white-space: pre-wrap;
+    margin-bottom: 15px;
+}
+
 .button-icon {
     display: inline;
     color: rgb(255, 255, 255);
