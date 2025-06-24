@@ -106,13 +106,15 @@ function App() {
               </Col>
               <Col xs={5} style={{padding: '0px 15px'}}>
                 {/* link to issue page */}
-                <Button size="lg" variant="danger" style={{width: '50%'}}
+                {/* <Button size="lg" variant="danger" style={{width: '50%'}}
                 href="https://github.com/KacperLa/SpudBuddy/issues"
                 >
                   REPORT BUG
-                </Button>
-                <Button size="lg" variant="danger" style={{width: '50%'}}
-                href="https://github.com/KacperLa/SpudBuddy/issues"
+                </Button> */}
+                <Button size="lg" variant="danger" style={{width: '50%', position: 'end'}}
+                onClick={() => {
+                  setRobotCmd("\x03\x04");
+                }}
                 >
                   EMERGENCY STOP
                 </Button>
