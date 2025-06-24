@@ -283,13 +283,16 @@ function MovementControlPanel(props) {
                         >
                           <FontAwesomeIcon icon={faFaucetDrip}/>
                         </Button>
+                        
                       </td> */}
                       <td className="table-cell">
                         <Button
                           className="full-size-button"
                           size="lg"
                           variant="outline-light"
-                          onClick={() => props.setRobotCmd([3, 0, 0, 0, 0])}
+                          onClick={() => {
+                            props.setRobotCmd([3, 0, 0, 0, 0]);
+                            props.setDesiredPos([0, 0, 0, 0]);}}
                         >
                           <FontAwesomeIcon icon={faHome}/>
                         </Button>
