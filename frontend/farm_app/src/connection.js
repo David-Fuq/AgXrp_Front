@@ -119,277 +119,308 @@ function FileDownloadManager({ packet, setFarmData }) {
 
 function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos }) {
     //console.log(robotCmd);
-      const [connected, setConnected] = useState(false);
-      const [message, setMessage] = useState('');
-      const [logs, setLogs] = useState([]);
-      const [busy, setBusy] = useState(false);
+    const pingIntervalRef = useRef(null);
+    const [connected, setConnected] = useState(false);
+    const [message, setMessage] = useState('');
+    const [logs, setLogs] = useState([]);
+    const [busy, setBusy] = useState(false);
 
-      const [jsonData, setJsonData] = useState(null);
-      const [isCollectingJson, setIsCollectingJson] = useState(false);
-      const jsonBufferRef = useRef("");
+    const [jsonData, setJsonData] = useState(null);
+    const [isCollectingJson, setIsCollectingJson] = useState(false);
+    const jsonBufferRef = useRef("");
 
-      const portRef = useRef(null);
-      const writerRef = useRef(null);
-      const readerRef = useRef(null);
-      const disconnectFlagRef = useRef(true);
-      const logContainerRef = useRef(null);
+    const portRef = useRef(null);
+    const writerRef = useRef(null);
+    const readerRef = useRef(null);
+    const disconnectFlagRef = useRef(true);
+    const logContainerRef = useRef(null);
 
-      // Constants for USB device identification
-      const USB_VENDOR_ID_BETA = 11914;
-      const USB_PRODUCT_ID_BETA = 5;
-      const USB_VENDOR_ID = 6991;
-      const USB_PRODUCT_ID = 70;
-      const XRP_SEND_BLOCK_SIZE = 250;
+    // Constants for USB device identification
+    const USB_VENDOR_ID_BETA = 11914;
+    const USB_PRODUCT_ID_BETA = 5;
+    const USB_VENDOR_ID = 6991;
+    const USB_PRODUCT_ID = 70;
+    const XRP_SEND_BLOCK_SIZE = 250;
 
-      // Control commands
-      const CTRL_CMD_RAWMODE = "\x01";     // ctrl-A
-      const CTRL_CMD_NORMALMODE = "\x02";  // ctrl-B
-      const CTRL_CMD_KINTERRUPT = "\x03";  // ctrl-C
-      const CTRL_CMD_SOFTRESET = "\x04";   // ctrl-D
+    // Control commands
+    const CTRL_CMD_RAWMODE = "\x01";     // ctrl-A
+    const CTRL_CMD_NORMALMODE = "\x02";  // ctrl-B
+    const CTRL_CMD_KINTERRUPT = "\x03";  // ctrl-C
+    const CTRL_CMD_SOFTRESET = "\x04";   // ctrl-D
 
-      const textEncoder = new TextEncoder();
-      const textDecoder = new TextDecoder();
+    const textEncoder = new TextEncoder();
+    const textDecoder = new TextDecoder();
 
-      // Add a log entry
-      useEffect(() => {
-        if (robotCmd != null)
-        {
-            console.log("Robot Command: ", robotCmd); 
-            const sendCmdStr = robotCmd.toString();
-            sendCommandWithNewline(sendCmdStr);
-            addLog(`Sending command: ${sendCmdStr}`, 'sent');
-        }
+    const sendPing = async () => {
+      if (connected && writerRef.current) {
+          await sendCommandWithNewline("ping");
+      }
+    };
+
+    // Add a log entry
+    useEffect(() => {
+      if (robotCmd != null)
+      {
+          console.log("Robot Command: ", robotCmd); 
+          const sendCmdStr = robotCmd.toString();
+          sendCommandWithNewline(sendCmdStr);
+          addLog(`Sending command: ${sendCmdStr}`, 'sent');
+      }
     }, [robotCmd]);
 
-      const addLog = (message, type = 'system') => {
-        setLogs(prevLogs => [...prevLogs, { message, type, timestamp: new Date() }]);
-        
-        // Auto-scroll to bottom
-        setTimeout(() => {
-          if (logContainerRef.current) {
-            logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-          }
-        }, 10);
-      };
-
-      // Check if a port matches our XRP devices
-
-      const connectManually = async () => {
-        try {
-          setBusy(true);
-          addLog('Requesting USB device...', 'system');
-          
-          const filters = [
-            { usbVendorId: USB_VENDOR_ID_BETA, usbProductId: USB_PRODUCT_ID_BETA },
-            { usbVendorId: USB_VENDOR_ID, usbProductId: USB_PRODUCT_ID }
-          ];
-          
-          const port = await navigator.serial.requestPort({ filters });
-          await connectToPort(port);
-          return true;
-        } catch (err) {
-          addLog(`Connection error: ${err.name} - ${err.message}`, 'error');
-          return false;
-        } finally {
-          setBusy(false);
-        }
-      };
-
-        const connectToPort = async (port) => {
-            try {
-            portRef.current = port;
-            
-            addLog('Opening connection at 115200 baud...', 'system');
-            await port.open({ baudRate: 115200 });
-            
-            writerRef.current = port.writable.getWriter();
-            disconnectFlagRef.current = false;
-            setConnected(true);
-            
-            addLog('Connected successfully!', 'system');
-            
-            // Start reading from the device
-            startReadLoop();
-            
-            return true;
-            } catch (err) {
-            addLog(`Port connection error: ${err.name} - ${err.message}`, 'error');
-            return false;
-            }
-        };
-
-        const startReadLoop = async () => {
-        if (!portRef.current || !portRef.current.readable) {
-            addLog('Cannot start read loop - no readable port', 'error');
-            return;
-        }
-        
-        addLog('Starting read loop...', 'system');
-        readerRef.current = portRef.current.readable.getReader();
-        
-        try {
-            let jsonBuffer = "";
-            let collectingJson = false;
-            
-            while (disconnectFlagRef.current === false) {
-            const { value, done } = await readerRef.current.read();
-            
-            if (done) {
-                addLog('Read stream closed', 'system');
-                readerRef.current.releaseLock();
-                break;
-            }
-            
-            if (value) {
-                const text = textDecoder.decode(value);
-                
-                // Process the received text line by line
-                const lines = text.split('\n');
-                for (const line of lines) {
-                const trimmedLine = line.trim();
-                
-                if (trimmedLine === "J") {
-                    // Start collecting JSON data
-                    collectingJson = true;
-                    jsonBuffer = "";
-                    continue;
-                } 
-                else if (trimmedLine === "X") {
-                    // End of JSON data, process it
-                    collectingJson = false;
-                    
-                    try {
-                    const parsedJson = JSON.parse(jsonBuffer);
-                    addLog(`Received JSON data: ${JSON.stringify(parsedJson, null, 2)}`, 'received');
-                    setJsonData(parsedJson); // Store in state if needed
-                    console.log(parsedJson);
-                    
-                    // Dispatch event for other components if needed
-                    window.dispatchEvent(new CustomEvent('xrp-json-received', { 
-                        detail: { data: parsedJson } 
-                    }));
-                    } catch (e) {
-                    addLog(`Error parsing JSON: ${e.message}`, 'error');
-                    addLog(`Raw JSON buffer: ${jsonBuffer}`, 'error');
-                    }
-                    continue;
-                }
-                
-                if (collectingJson) {
-                    // Collecting JSON data
-                    jsonBuffer += trimmedLine;
-                } else {
-                    // Regular text output
-                    addLog(`Received: ${trimmedLine}`, 'received');
-                }
-                }
-            }
-            }
-        } catch (err) {
-            addLog(`Read error: ${err.name} - ${err.message}`, 'error');
-            if (readerRef.current) {
-            try {
-                readerRef.current.releaseLock();
-            } catch (e) {
-                // Ignore release errors
-            }
-            }
-        }
-        
-        addLog('Read loop ended', 'system');
-        };
-
-        const sendControlCommand = async (command) => {
-        switch (command) {
-          case 'raw':
-            return await sendCommandWithNewline(CTRL_CMD_RAWMODE);
-          case 'normal':
-            return await sendCommandWithNewline(CTRL_CMD_NORMALMODE);
-          case 'interrupt':
-            await sendCommandWithNewline(CTRL_CMD_KINTERRUPT);
-            console.log('Interrupt command sent, waiting for response...');
-            // Wait for a short period to allow the device to respond
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await sendCommandWithNewline(CTRL_CMD_KINTERRUPT);
-            console.log('Interrupt command sent again, waiting for response...');
-            // Wait for a short period to allow the device to respond
-            await new Promise(resolve => setTimeout(resolve, 100));
-            console.log('Befor reset')
-            return await sendCommandWithNewline(CTRL_CMD_SOFTRESET);
-
-          case 'reset':
-            return await sendCommandWithNewline(CTRL_CMD_SOFTRESET);
-          default:
-            addLog(`Unknown control command: ${command}`, 'error');
-            return false;
-        }
-      };
-
-      const disconnect = async () => {
-        disconnectFlagRef.current = true;
-        
-        try {
-          if (readerRef.current) {
-            await readerRef.current.cancel();
-            readerRef.current.releaseLock();
-            readerRef.current = null;
-          }
-          
-          if (writerRef.current) {
-            writerRef.current.releaseLock();
-            writerRef.current = null;
-          }
-          
-          if (portRef.current) {
-            await portRef.current.close();
-            portRef.current = null;
-          }
-          
-          setConnected(false);
-          addLog('Disconnected successfully', 'system');
-          return true;
-        } catch (err) {
-          addLog(`Disconnect error: ${err.name} - ${err.message}`, 'error');
-          return false;
-        }
-      };
-
-      const handleSend = () => {
-        if (message.trim()) {
-          sendCommandWithNewline(message);
-          setMessage('');
-        }
-      };
-
-      const sendCommandWithNewline = async (cmd) => {
-        if (!writerRef.current) {
-            addLog('Cannot send command - no writer available', 'error');
-            return false;
-        }
-        
-        try {
-            const commandWithNewline = cmd + '\r\n';
-            addLog(`Sending command: ${cmd}`, 'sent');
-            await writerRef.current.write(textEncoder.encode(commandWithNewline));
-            return true;
-        } catch (err) {
-            addLog(`Command send error: ${err.name} - ${err.message}`, 'error');
-            return false;
-        }
-        };
-
-        const clearLog = () => {
-        setLogs([]);
-      };
-
-      // Check for WebSerial API support
-      useEffect(() => {
-        if (!navigator.serial) {
-          addLog('WebSerial API is not supported in this browser. Please use Chrome or Edge.', 'error');
+    useEffect(() => {
+        if (connected) {
+            // Send a ping every 5 seconds
+            pingIntervalRef.current = setInterval(sendPing, 5000);
         } else {
-          addLog('WebSerial API is supported in this browser!', 'system');
+            // Clear interval on disconnect
+            if (pingIntervalRef.current) {
+                clearInterval(pingIntervalRef.current);
+                pingIntervalRef.current = null;
+            }
         }
-      }, []);
+        
+        return () => {
+            if (pingIntervalRef.current) {
+                clearInterval(pingIntervalRef.current);
+            }
+        };
+    }, [connected]);
+
+    const addLog = (message, type = 'system') => {
+      setLogs(prevLogs => [...prevLogs, { message, type, timestamp: new Date() }]);
+      
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        if (logContainerRef.current) {
+          logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+        }
+      }, 10);
+    };
+
+    // Check if a port matches our XRP devices
+
+    const connectManually = async () => {
+      try {
+        setBusy(true);
+        addLog('Requesting USB device...', 'system');
+        
+        const filters = [
+          { usbVendorId: USB_VENDOR_ID_BETA, usbProductId: USB_PRODUCT_ID_BETA },
+          { usbVendorId: USB_VENDOR_ID, usbProductId: USB_PRODUCT_ID }
+        ];
+        
+        const port = await navigator.serial.requestPort({ filters });
+        await connectToPort(port);
+        return true;
+      } catch (err) {
+        addLog(`Connection error: ${err.name} - ${err.message}`, 'error');
+        return false;
+      } finally {
+        setBusy(false);
+      }
+    };
+
+      const connectToPort = async (port) => {
+          try {
+          portRef.current = port;
+          
+          addLog('Opening connection at 115200 baud...', 'system');
+          await port.open({ baudRate: 115200 });
+          
+          writerRef.current = port.writable.getWriter();
+          disconnectFlagRef.current = false;
+          setConnected(true);
+          
+          addLog('Connected successfully!', 'system');
+          
+          // Start reading from the device
+          startReadLoop();
+          
+          return true;
+          } catch (err) {
+          addLog(`Port connection error: ${err.name} - ${err.message}`, 'error');
+          return false;
+          }
+      };
+
+      const startReadLoop = async () => {
+      if (!portRef.current || !portRef.current.readable) {
+          addLog('Cannot start read loop - no readable port', 'error');
+          return;
+      }
+      
+      addLog('Starting read loop...', 'system');
+      readerRef.current = portRef.current.readable.getReader();
+      
+      try {
+          let jsonBuffer = "";
+          let collectingJson = false;
+          
+          while (disconnectFlagRef.current === false) {
+          const { value, done } = await readerRef.current.read();
+          
+          if (done) {
+              addLog('Read stream closed', 'system');
+              readerRef.current.releaseLock();
+              break;
+          }
+          
+          if (value) {
+              const text = textDecoder.decode(value);
+              
+              // Process the received text line by line
+              const lines = text.split('\n');
+              for (const line of lines) {
+              const trimmedLine = line.trim();
+              
+              if (trimmedLine === "J") {
+                  // Start collecting JSON data
+                  collectingJson = true;
+                  jsonBuffer = "";
+                  continue;
+              } 
+              else if (trimmedLine === "X") {
+                  // End of JSON data, process it
+                  collectingJson = false;
+                  
+                  try {
+                  // const parsedJson = JSON.parse(jsonBuffer);
+                  // addLog(`Received JSON data: ${JSON.stringify(parsedJson, null, 2)}`, 'received');
+                  // setJsonData(parsedJson); // Store in state if needed
+                  console.log(jsonBuffer);
+                  alert(jsonBuffer)
+                  
+                  // Dispatch event for other components if needed
+                  // window.dispatchEvent(new CustomEvent('xrp-json-received', { 
+                  //     detail: { data: parsedJson } 
+                  // }));
+                  } catch (e) {
+                  addLog(`Error parsing JSON: ${e.message}`, 'error');
+                  addLog(`Raw JSON buffer: ${jsonBuffer}`, 'error');
+                  }
+                  continue;
+              }
+              
+              if (collectingJson) {
+                  // Collecting JSON data
+                  jsonBuffer += trimmedLine;
+              } else {
+                  // Regular text output
+                  addLog(`Received: ${trimmedLine}`, 'received');
+                  if (trimmedLine.includes("Moisture reading")){
+                    addLog(`ALERT`, 'received');
+                    alert(`Moisture Data Received:\n${trimmedLine}`);
+                  }
+              }
+              }
+          }
+          }
+      } catch (err) {
+          addLog(`Read error: ${err.name} - ${err.message}`, 'error');
+          if (readerRef.current) {
+          try {
+              readerRef.current.releaseLock();
+          } catch (e) {
+              // Ignore release errors
+          }
+          }
+      }
+      
+      addLog('Read loop ended', 'system');
+      };
+
+      const sendControlCommand = async (command) => {
+      switch (command) {
+        case 'raw':
+          return await sendCommandWithNewline(CTRL_CMD_RAWMODE);
+        case 'normal':
+          return await sendCommandWithNewline(CTRL_CMD_NORMALMODE);
+        case 'interrupt':
+          await sendCommandWithNewline(CTRL_CMD_KINTERRUPT);
+          console.log('Interrupt command sent, waiting for response...');
+          // Wait for a short period to allow the device to respond
+          await new Promise(resolve => setTimeout(resolve, 100));
+          await sendCommandWithNewline(CTRL_CMD_KINTERRUPT);
+          console.log('Interrupt command sent again, waiting for response...');
+          // Wait for a short period to allow the device to respond
+          await new Promise(resolve => setTimeout(resolve, 100));
+          console.log('Befor reset')
+          return await sendCommandWithNewline(CTRL_CMD_SOFTRESET);
+
+        case 'reset':
+          return await sendCommandWithNewline(CTRL_CMD_SOFTRESET);
+        default:
+          addLog(`Unknown control command: ${command}`, 'error');
+          return false;
+      }
+    };
+
+    const disconnect = async () => {
+      disconnectFlagRef.current = true;
+      
+      try {
+        if (readerRef.current) {
+          await readerRef.current.cancel();
+          readerRef.current.releaseLock();
+          readerRef.current = null;
+        }
+        
+        if (writerRef.current) {
+          writerRef.current.releaseLock();
+          writerRef.current = null;
+        }
+        
+        if (portRef.current) {
+          await portRef.current.close();
+          portRef.current = null;
+        }
+        
+        setConnected(false);
+        addLog('Disconnected successfully', 'system');
+        return true;
+      } catch (err) {
+        addLog(`Disconnect error: ${err.name} - ${err.message}`, 'error');
+        return false;
+      }
+    };
+
+    const handleSend = () => {
+      if (message.trim()) {
+        sendCommandWithNewline(message);
+        setMessage('');
+      }
+    };
+
+    const sendCommandWithNewline = async (cmd) => {
+      if (!writerRef.current) {
+          addLog('Cannot send command - no writer available', 'error');
+          return false;
+      }
+      
+      try {
+          const commandWithNewline = cmd + '\r\n';
+          addLog(`Sending command: ${cmd}`, 'sent');
+          await writerRef.current.write(textEncoder.encode(commandWithNewline));
+          return true;
+      } catch (err) {
+          addLog(`Command send error: ${err.name} - ${err.message}`, 'error');
+          return false;
+      }
+      };
+
+      const clearLog = () => {
+      setLogs([]);
+    };
+
+    // Check for WebSerial API support
+    useEffect(() => {
+      if (!navigator.serial) {
+        addLog('WebSerial API is not supported in this browser. Please use Chrome or Edge.', 'error');
+      } else {
+        addLog('WebSerial API is supported in this browser!', 'system');
+      }
+    }, []);
 
 
 
@@ -412,8 +443,8 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
             <Button size="lg" onClick={() => sendCommandWithNewline("get_sensor_data")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faFile} /> <span className="button-label">Reload data from robot</span>
             </Button>
-            <Button size="lg" onClick={() => sendCommandWithNewline("get_sensor_data")} variant="outline-light" style={{ margin: '0 5px' }}>
-                <FontAwesomeIcon icon={faWater} /> <span className="button-label">Download moisture data</span>
+            <Button size="lg" onClick={() => sendCommandWithNewline("2")} variant="outline-light" style={{ margin: '0 5px' }}>
+                <FontAwesomeIcon icon={faWater} /> <span className="button-label">Show moisture data</span>
             </Button>
             <Button size="lg" onClick={() => sendCommandWithNewline("get_sensor_data")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faFlag} /> <span className="button-label">Download mission data</span>

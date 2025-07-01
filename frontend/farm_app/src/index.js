@@ -113,7 +113,7 @@ function App() {
                 </Button> */}
                 <Button size="lg" variant="danger" style={{width: '50%', position: 'end'}}
                 onClick={() => {
-                  setRobotCmd("\x03\x04");
+                  setRobotCmd("STAP");
                 }}
                 >
                   EMERGENCY STOP

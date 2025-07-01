@@ -33,39 +33,51 @@
         }
     ],
     "plants": {
-        "tomato_1": {
+        "tomato": {
             "ml_response": 50,
             "location": [
-                115,
-                100
+                109,
+                114
             ],
             "sense": [
-                100,
-                100
+                109,
+                114
             ],
             "moisture_threshhold": 0.5
         },
-        "spicy pepper 1": {
+        "basil": {
             "ml_response": 20,
             "location": [
-                170,
-                30
+                249,
+                143
             ],
             "sense": [
-                200.0,
-                25.0
+                249.0,
+                143.0
             ],
             "moisture_threshhold": 0.4
         },
-        "potato_1": {
+        "raddish": {
             "ml_response": 30,
             "location": [
-                310,
-                120
+                462,
+                211
             ],
             "sense": [
-                300,
-                100
+                462,
+                211
+            ],
+            "moisture_threshhold": 0.2
+        },
+        "beet": {
+            "ml_response": 30,
+            "location": [
+                494,
+                27
+            ],
+            "sense": [
+                494,
+                27
             ],
             "moisture_threshhold": 0.2
         }
