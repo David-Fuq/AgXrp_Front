@@ -161,7 +161,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
     useEffect(() => {
       if (robotCmd != null)
       {
-          console.log("Robot Command: ", robotCmd); 
+          //console.log("Robot Command: ", robotCmd); 
           const sendCmdStr = robotCmd.toString();
           sendCommandWithNewline(sendCmdStr);
           addLog(`Sending command: ${sendCmdStr}`, 'sent');
@@ -288,7 +288,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
                   // const parsedJson = JSON.parse(jsonBuffer);
                   // addLog(`Received JSON data: ${JSON.stringify(parsedJson, null, 2)}`, 'received');
                   // setJsonData(parsedJson); // Store in state if needed
-                  console.log(jsonBuffer);
+                  //console.log(jsonBuffer);
                   alert(jsonBuffer)
                   
                   // Dispatch event for other components if needed
@@ -338,14 +338,14 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
           return await sendCommandWithNewline(CTRL_CMD_NORMALMODE);
         case 'interrupt':
           await sendCommandWithNewline(CTRL_CMD_KINTERRUPT);
-          console.log('Interrupt command sent, waiting for response...');
+          //console.log('Interrupt command sent, waiting for response...');
           // Wait for a short period to allow the device to respond
           await new Promise(resolve => setTimeout(resolve, 100));
           await sendCommandWithNewline(CTRL_CMD_KINTERRUPT);
-          console.log('Interrupt command sent again, waiting for response...');
+          //console.log('Interrupt command sent again, waiting for response...');
           // Wait for a short period to allow the device to respond
           await new Promise(resolve => setTimeout(resolve, 100));
-          console.log('Befor reset')
+          //console.log('Befor reset')
           return await sendCommandWithNewline(CTRL_CMD_SOFTRESET);
 
         case 'reset':
@@ -440,7 +440,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
             <Button size="lg" onClick={connectManually} variant={connected ? "success" : "outline-light"} style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faSignal} /> <span className="button-text">Connect Robot</span>
             </Button>
-            <Button size="lg" onClick={() => sendCommandWithNewline("get_sensor_data")} variant="outline-light" style={{ margin: '0 5px' }}>
+            <Button size="lg" onClick={() => sendCommandWithNewline("20, 0")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faFile} /> <span className="button-label">Reload data from robot</span>
             </Button>
             <Button size="lg" onClick={() => sendCommandWithNewline("2")} variant="outline-light" style={{ margin: '0 5px' }}>

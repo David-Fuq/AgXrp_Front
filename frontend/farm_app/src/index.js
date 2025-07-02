@@ -33,12 +33,12 @@ function App() {
   const [plantView, setPlantView] = useState("plants");
 
   useEffect(() => {
-    console.log("Farm Data Updated");
-    console.log(farmData);
+    //("Farm Data Updated");
+    //console.log(farmData);
     if (farmData != null) {
-      console.log(farmData.type);
+      //console.log(farmData.type);
       setFarmSize([farmData.gantry_size[0]/100, farmData.gantry_size[1]/100]);
-      console.log("Setting farm size to:", farmData.gantry_size);
+      //console.log("Setting farm size to:", farmData.gantry_size);
     }
   }, [farmData]);
 
@@ -48,7 +48,7 @@ function App() {
 
   const memoizedSetDatatoSend = useCallback((data) => {
     if (data != null) {
-      console.log("Setting Data to Send: ", data);
+      //console.log("Setting Data to Send: ", data);
       setDatatoSend(data);
     }
   }, []);
@@ -73,7 +73,7 @@ function App() {
     const plant_id = farmData.plants[plant].id;
     setRobotCmd([9, plant_id, 0, 0, 0]);
     
-    console.log("Deleting Plant: ", plant);
+    //console.log("Deleting Plant: ", plant);
 
     // Create a new array of plants without the deleted plant
     const newPlants = farmData.plants;

@@ -57,7 +57,7 @@ const Farm = ({ size }) => {
   if (size[0] === 0 || size[1] === 0 ) return null;
 
   const onPointerClick = (event) => {
-    console.log("Farm clicked");
+    //console.log("Farm clicked");
   }
 
   return (
@@ -120,14 +120,14 @@ const SpudBuddy = ({ position, color, setDesiredPos, isDraggable=false }) => {
   function moveSpud(newPos) {
     if(!isDraggable) return; 
     if(!moving) return;
-    console.log("Moving spud to: ", newPos);
+    //console.log("Moving spud to: ", newPos);
     setSpudPos([newPos.x, newPos.y, 1]);
   }
 
   function onRelease() {
-    console.log("DONDE ESTAR EL ERROR")
-    console.log("Spud clicked");
-    console.log("Spud position: ", spudPos);
+    //console.log("DONDE ESTAR EL ERROR")
+    //console.log("Spud clicked");
+    //console.log("Spud position: ", spudPos);
     setMoving(false);
     setDesiredPos([Math.floor(spudPos[0] * 100), Math.floor(spudPos[1] * 100), 1]);
   }
@@ -142,7 +142,7 @@ const SpudBuddy = ({ position, color, setDesiredPos, isDraggable=false }) => {
       ref={spudRef}
       position={spudPos}
       onPointerDown={() => {setMoving(true);
-        console.log("jUST CLICKED SPUD");
+        //console.log("jUST CLICKED SPUD");
       }}
       onPointerUp={() => onRelease()}
       onPointerMove={(event) => moveSpud(event.point)}

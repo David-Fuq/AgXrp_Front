@@ -119,7 +119,7 @@ const PlantPanel = React.memo((props) => {
       data[i+11] = nameArray[i];
     }
 
-    console.log(data);
+    //console.log(data);
     props.sendData(data);
   }
 
