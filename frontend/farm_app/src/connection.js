@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { faSignal, faFile, faFlag, faDroplet, faWater, faUpRightAndDownLeftFromCenter, faFileImport } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Button from 'react-bootstrap/Button';
+import Modal from 'react-bootstrap/Modal';
 import './connection.css';
+import FileTransferReceiver from './FileTransferReciever';
 
 //TODO -> Download data. Should be just missing transform json into file.
 /*
@@ -124,6 +126,8 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
     const [message, setMessage] = useState('');
     const [logs, setLogs] = useState([]);
     const [busy, setBusy] = useState(false);
+    const [showFileTransferModal, setShowFileTransferModal] = useState(false);
+    const [transferProgress, setTransferProgress] = useState({ current: 0, total: 0 });
 
     const [jsonData, setJsonData] = useState(null);
     const [isCollectingJson, setIsCollectingJson] = useState(false);
@@ -134,6 +138,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
     const readerRef = useRef(null);
     const disconnectFlagRef = useRef(true);
     const logContainerRef = useRef(null);
+    const fileTransferRef = useRef(null);
 
     // Constants for USB device identification
     const USB_VENDOR_ID_BETA = 11914;
@@ -150,6 +155,49 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
 
     const textEncoder = new TextEncoder();
     const textDecoder = new TextDecoder();
+
+    // Initialize FileTransferReceiver
+    useEffect(() => {
+        fileTransferRef.current = new FileTransferReceiver(handleFileTransferComplete);
+    }, []);
+
+    const handleFileTransferComplete = (result) => {
+        setShowFileTransferModal(false);
+        
+        if (result.fileType === 'JSON') {
+            // Update the farm data if we received JSON data
+            setFarmData(result.data);
+        }
+        
+        // Trigger a download for the file
+        downloadFile(result.data, result.fileName, result.fileType);
+    };
+
+    // Function to download the file
+    const downloadFile = (data, fileName, fileType) => {
+        let blob;
+        let downloadName = fileName || 'downloaded_file';
+        
+        if (fileType === 'JSON') {
+            blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            if (!downloadName.endsWith('.json')) downloadName += '.json';
+        } else if (fileType === 'CSV') {
+            blob = new Blob([data], { type: 'text/csv' });
+            if (!downloadName.endsWith('.csv')) downloadName += '.csv';
+        } else {
+            blob = new Blob([data], { type: 'application/octet-stream' });
+        }
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = downloadName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
 
     const sendPing = async () => {
       if (connected && writerRef.current) {
@@ -244,7 +292,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
           }
       };
 
-      const startReadLoop = async () => {
+          const startReadLoop = async () => {
       if (!portRef.current || !portRef.current.readable) {
           addLog('Cannot start read loop - no readable port', 'error');
           return;
@@ -258,63 +306,83 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
           let collectingJson = false;
           
           while (disconnectFlagRef.current === false) {
-          const { value, done } = await readerRef.current.read();
-          
-          if (done) {
-              addLog('Read stream closed', 'system');
-              readerRef.current.releaseLock();
-              break;
-          }
-          
-          if (value) {
-              const text = textDecoder.decode(value);
-              
-              // Process the received text line by line
-              const lines = text.split('\n');
-              for (const line of lines) {
-              const trimmedLine = line.trim();
-              
-              if (trimmedLine === "J") {
-                  // Start collecting JSON data
-                  collectingJson = true;
-                  jsonBuffer = "";
-                  continue;
-              } 
-              else if (trimmedLine === "X") {
-                  // End of JSON data, process it
-                  collectingJson = false;
+            const { value, done } = await readerRef.current.read();
+            
+            if (done) {
+                addLog('Read stream closed', 'system');
+                readerRef.current.releaseLock();
+                break;
+            }
+            
+            if (value) {
+                const text = textDecoder.decode(value);
+                
+                // Process the received text line by line
+                const lines = text.split('\n');
+                for (const line of lines) {
+                  const trimmedLine = line.trim();
                   
-                  try {
-                  // const parsedJson = JSON.parse(jsonBuffer);
-                  // addLog(`Received JSON data: ${JSON.stringify(parsedJson, null, 2)}`, 'received');
-                  // setJsonData(parsedJson); // Store in state if needed
-                  //console.log(jsonBuffer);
-                  alert(jsonBuffer)
+                  // Check for file transfer message
+                  if (trimmedLine.startsWith('FT,')) {
+                      // Show file transfer modal if not already shown
+                      if (!showFileTransferModal) {
+                          setShowFileTransferModal(true);
+                          setTransferProgress({ current: 0, total: 1 });
+                      }
+                      
+                      // Process the file transfer message
+                      const parts = trimmedLine.split(',');
+                      if (parts[1] === 'P' && parts.length >= 4) {
+                          // Update progress for payload chunks
+                          setTransferProgress({
+                              current: parseInt(parts[2]) + 1,
+                              total: parseInt(parts[3])
+                          });
+                      }
+                      
+                      const result = fileTransferRef.current.processMessage(trimmedLine);
+                      if (result) {
+                          // File transfer is complete - handled by the callback
+                          addLog(`File transfer complete: ${result.fileName || 'unnamed file'}`, 'received');
+                      }
+                      continue;
+                  }
                   
-                  // Dispatch event for other components if needed
-                  // window.dispatchEvent(new CustomEvent('xrp-json-received', { 
-                  //     detail: { data: parsedJson } 
-                  // }));
-                  } catch (e) {
-                  addLog(`Error parsing JSON: ${e.message}`, 'error');
-                  addLog(`Raw JSON buffer: ${jsonBuffer}`, 'error');
+                  if (trimmedLine === "J") {
+                      // Start collecting JSON data
+                      collectingJson = true;
+                      jsonBuffer = "";
+                      continue;
+                  } 
+                  else if (trimmedLine === "X") {
+                      // End of JSON data, process it
+                      collectingJson = false;
+                      
+                      try {
+                        // const parsedJson = JSON.parse(jsonBuffer);
+                        // addLog(`Received JSON data: ${JSON.stringify(parsedJson, null, 2)}`, 'received');
+                        // setJsonData(parsedJson); // Store in state if needed
+                        alert(jsonBuffer);
+                      } catch (e) {
+                        addLog(`Error parsing JSON: ${e.message}`, 'error');
+                        addLog(`Raw JSON buffer: ${jsonBuffer}`, 'error');
+                      }
+                      continue;
                   }
-                  continue;
-              }
-              
-              if (collectingJson) {
-                  // Collecting JSON data
-                  jsonBuffer += trimmedLine;
-              } else {
-                  // Regular text output
-                  addLog(`Received: ${trimmedLine}`, 'received');
-                  if (trimmedLine.includes("Moisture reading")){
-                    addLog(`ALERT`, 'received');
-                    alert(`Moisture Data Received:\n${trimmedLine}`);
+                  
+                  if (collectingJson) {
+                      // Collecting JSON data
+                      jsonBuffer += trimmedLine;
+                  } else {
+                      // Regular text output
+                      addLog(`Received: ${trimmedLine}`, 'received');
+                      if (trimmedLine.includes("Moisture reading")){
+                        addLog(`ALERT`, 'received');
+                        alert(`Moisture Data Received:\n${trimmedLine}`);
+                      }
                   }
-              }
-              }
-          }
+                }
+            }
           }
       } catch (err) {
           addLog(`Read error: ${err.name} - ${err.message}`, 'error');
@@ -328,7 +396,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
       }
       
       addLog('Read loop ended', 'system');
-      };
+    };
 
       const sendControlCommand = async (command) => {
       switch (command) {
@@ -436,11 +504,11 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
                 [{log.timestamp.toLocaleTimeString()}] {log.message}
               </div>
             ))}
-          </div>
+            </div>
             <Button size="lg" onClick={connectManually} variant={connected ? "success" : "outline-light"} style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faSignal} /> <span className="button-text">Connect Robot</span>
             </Button>
-            <Button size="lg" onClick={() => sendCommandWithNewline("20, 0")} variant="outline-light" style={{ margin: '0 5px' }}>
+            <Button size="lg" onClick={() => sendCommandWithNewline("20,0")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faFile} /> <span className="button-label">Reload data from robot</span>
             </Button>
             <Button size="lg" onClick={() => sendCommandWithNewline("2")} variant="outline-light" style={{ margin: '0 5px' }}>
@@ -458,6 +526,35 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
             <Button size="lg" onClick={() => sendCommandWithNewline("11")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faFileImport} /> <span className="button-label">JSON gantry size</span>
             </Button>
+            
+            {/* File Transfer Modal */}
+            <Modal 
+                show={showFileTransferModal} 
+                centered
+                backdrop="static"
+                keyboard={false}
+            >
+                <Modal.Header>
+                    <Modal.Title>File Transfer</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <p>Downloading file from robot...</p>
+                    <div className="progress">
+                        <div 
+                            className="progress-bar" 
+                            role="progressbar" 
+                            style={{
+                                width: `${(transferProgress.current / transferProgress.total) * 100}%`
+                            }}
+                            aria-valuenow={transferProgress.current}
+                            aria-valuemin="0"
+                            aria-valuemax={transferProgress.total}
+                        >
+                            {transferProgress.current} / {transferProgress.total}
+                        </div>
+                    </div>
+                </Modal.Body>
+            </Modal>
         </div>
     );
 }
