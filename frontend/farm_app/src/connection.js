@@ -292,112 +292,94 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
           }
       };
 
-          const startReadLoop = async () => {
-      if (!portRef.current || !portRef.current.readable) {
-          addLog('Cannot start read loop - no readable port', 'error');
-          return;
+    const startReadLoop = async () => {
+  if (!portRef.current || !portRef.current.readable) {
+      addLog('Cannot start read loop - no readable port', 'error');
+      return;
+  }
+  
+  addLog('Starting read loop...', 'system');
+  readerRef.current = portRef.current.readable.getReader();
+  
+  try {
+      let jsonBuffer = "";
+      let collectingJson = false;
+      
+      while (disconnectFlagRef.current === false) {
+        const { value, done } = await readerRef.current.read();
+        
+        if (done) {
+            addLog('Read stream closed', 'system');
+            readerRef.current.releaseLock();
+            break;
+        }
+        
+        if (value) {
+            const text = textDecoder.decode(value);
+            addLog(`Raw received: ${text}`, 'debug'); // Log raw received data for debugging
+            
+            // Pass all incoming text to the file transfer receiver
+            fileTransferRef.current.processIncomingText(text);
+            
+            // Process the received text line by line for other commands
+            const lines = text.split('\n');
+            for (const line of lines) {
+              const trimmedLine = line.trim();
+              
+              // Skip empty lines and FT messages (handled by FileTransferReceiver)
+              if (!trimmedLine || trimmedLine.startsWith('FT,')) {
+                  continue;
+              }
+              
+              if (trimmedLine === "J") {
+                  // Start collecting JSON data
+                  collectingJson = true;
+                  jsonBuffer = "";
+                  continue;
+              } 
+              else if (trimmedLine === "X") {
+                  // End of JSON data, process it
+                  collectingJson = false;
+                  
+                  try {
+                    // const parsedJson = JSON.parse(jsonBuffer);
+                    // addLog(`Received JSON data: ${JSON.stringify(parsedJson, null, 2)}`, 'received');
+                    // setJsonData(parsedJson); // Store in state if needed
+                    alert(jsonBuffer);
+                  } catch (e) {
+                    addLog(`Error parsing JSON: ${e.message}`, 'error');
+                    addLog(`Raw JSON buffer: ${jsonBuffer}`, 'error');
+                  }
+                  continue;
+              }
+              
+              if (collectingJson) {
+                  // Collecting JSON data
+                  jsonBuffer += trimmedLine;
+              } else if (trimmedLine && !trimmedLine.startsWith('FT,')) {
+                  // Regular text output (not FT messages)
+                  addLog(`Received: ${trimmedLine}`, 'received');
+                  if (trimmedLine.includes("Moisture reading")){
+                    addLog(`ALERT`, 'received');
+                    alert(`Moisture Data Received:\n${trimmedLine}`);
+                  }
+              }
+            }
+        }
       }
-      
-      addLog('Starting read loop...', 'system');
-      readerRef.current = portRef.current.readable.getReader();
-      
+  } catch (err) {
+      addLog(`Read error: ${err.name} - ${err.message}`, 'error');
+      if (readerRef.current) {
       try {
-          let jsonBuffer = "";
-          let collectingJson = false;
-          
-          while (disconnectFlagRef.current === false) {
-            const { value, done } = await readerRef.current.read();
-            
-            if (done) {
-                addLog('Read stream closed', 'system');
-                readerRef.current.releaseLock();
-                break;
-            }
-            
-            if (value) {
-                const text = textDecoder.decode(value);
-                
-                // Process the received text line by line
-                const lines = text.split('\n');
-                for (const line of lines) {
-                  const trimmedLine = line.trim();
-                  
-                  // Check for file transfer message
-                  if (trimmedLine.startsWith('FT,')) {
-                      // Show file transfer modal if not already shown
-                      if (!showFileTransferModal) {
-                          setShowFileTransferModal(true);
-                          setTransferProgress({ current: 0, total: 1 });
-                      }
-                      
-                      // Process the file transfer message
-                      const parts = trimmedLine.split(',');
-                      if (parts[1] === 'P' && parts.length >= 4) {
-                          // Update progress for payload chunks
-                          setTransferProgress({
-                              current: parseInt(parts[2]) + 1,
-                              total: parseInt(parts[3])
-                          });
-                      }
-                      
-                      const result = fileTransferRef.current.processMessage(trimmedLine);
-                      if (result) {
-                          // File transfer is complete - handled by the callback
-                          addLog(`File transfer complete: ${result.fileName || 'unnamed file'}`, 'received');
-                      }
-                      continue;
-                  }
-                  
-                  if (trimmedLine === "J") {
-                      // Start collecting JSON data
-                      collectingJson = true;
-                      jsonBuffer = "";
-                      continue;
-                  } 
-                  else if (trimmedLine === "X") {
-                      // End of JSON data, process it
-                      collectingJson = false;
-                      
-                      try {
-                        // const parsedJson = JSON.parse(jsonBuffer);
-                        // addLog(`Received JSON data: ${JSON.stringify(parsedJson, null, 2)}`, 'received');
-                        // setJsonData(parsedJson); // Store in state if needed
-                        alert(jsonBuffer);
-                      } catch (e) {
-                        addLog(`Error parsing JSON: ${e.message}`, 'error');
-                        addLog(`Raw JSON buffer: ${jsonBuffer}`, 'error');
-                      }
-                      continue;
-                  }
-                  
-                  if (collectingJson) {
-                      // Collecting JSON data
-                      jsonBuffer += trimmedLine;
-                  } else {
-                      // Regular text output
-                      addLog(`Received: ${trimmedLine}`, 'received');
-                      if (trimmedLine.includes("Moisture reading")){
-                        addLog(`ALERT`, 'received');
-                        alert(`Moisture Data Received:\n${trimmedLine}`);
-                      }
-                  }
-                }
-            }
-          }
-      } catch (err) {
-          addLog(`Read error: ${err.name} - ${err.message}`, 'error');
-          if (readerRef.current) {
-          try {
-              readerRef.current.releaseLock();
-          } catch (e) {
-              // Ignore release errors
-          }
-          }
+          readerRef.current.releaseLock();
+      } catch (e) {
+          // Ignore release errors
       }
-      
-      addLog('Read loop ended', 'system');
-    };
-
+      }
+  }
+  
+  addLog('Read loop ended', 'system');
+};
       const sendControlCommand = async (command) => {
       switch (command) {
         case 'raw':

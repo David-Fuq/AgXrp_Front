@@ -2,6 +2,7 @@ class FileTransferReceiver {
   constructor(onComplete) {
     this.onComplete = onComplete;
     this.reset();
+    this.messageBuffer = ''; // Add a buffer for incomplete messages
   }
 
   reset() {
@@ -15,18 +16,68 @@ class FileTransferReceiver {
   }
 
   /**
+   * Process incoming text from the serial connection
+   * @param {string} text - Raw text received from serial
+   */
+  processIncomingText(text) {
+    // Append the text to our buffer
+    this.messageBuffer += text;
+    
+    // Process any complete FT messages in the buffer
+    this.processMessageBuffer();
+  }
+
+  /**
+   * Process the message buffer, extracting complete FT messages
+   */
+  processMessageBuffer() {
+    // Look for complete FT messages in the buffer
+    const ftIndex = this.messageBuffer.indexOf('FT,');
+    if (ftIndex === -1) return; // No FT message found
+    
+    // Extract from FT to the next newline or end of buffer
+    let endIndex = this.messageBuffer.indexOf('\n', ftIndex);
+    if (endIndex === -1) endIndex = this.messageBuffer.indexOf('\r', ftIndex);
+    if (endIndex === -1) return; // No complete message yet
+    
+    // Extract the message
+    const message = this.messageBuffer.substring(ftIndex, endIndex).trim();
+    
+    // Remove the processed message from the buffer
+    this.messageBuffer = this.messageBuffer.substring(endIndex + 1);
+    
+    // Process the complete message
+    try {
+      const result = this.processMessage(message);
+      if (result && this.onComplete) {
+        this.onComplete(result);
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
+    }
+    
+    // Recursively process any other complete messages
+    if (this.messageBuffer.includes('FT,')) {
+      this.processMessageBuffer();
+    }
+  }
+
+  /**
    * Process a received message from the serial connection
    * @param {string} message - The message received (FT,type,data)
    * @returns {Object|null} - The completed file data or null if transfer is not complete
    */
   processMessage(message) {
+    console.log("Processing complete message:", message);
+    
     const parts = message.split(',');
     if (parts.length < 2 || parts[0] !== 'FT') {
+      console.error('Invalid message format:', message);
       return null;
     }
 
     const messageType = parts[1];
-    console.log(`${message}`)
+    
     try {
       switch(messageType) {
         case 'H': // Header
@@ -44,7 +95,7 @@ class FileTransferReceiver {
           return null;
       }
     } catch (error) {
-      console.error('Error processing message:', error);
+      console.error('Error processing message:', error, message);
       return null;
     }
   }
@@ -54,8 +105,9 @@ class FileTransferReceiver {
    * @param {string} hexData - Hex encoded header data
    */
   processHeader(hexData) {
+    console.log("Processing header:", hexData);
+    
     // Convert hex string to byte array
-    console.log(`${hexData}`);
     const headerBytes = this.hexToBytes(hexData);
     
     if (headerBytes[0] !== 0x01) {
@@ -85,7 +137,10 @@ class FileTransferReceiver {
   processPayload(chunkIndex, totalChunks, hexData) {
     const index = parseInt(chunkIndex);
     
-    if (index >= this.receivedChunks.length) {
+    console.log(`Processing payload chunk ${index}/${totalChunks}`);
+    
+    if (!this.receivedChunks || index >= this.expectedChunks) {
+      console.error(`Invalid chunk index ${index}, expected chunks: ${this.expectedChunks}`);
       throw new Error(`Chunk index ${index} out of range`);
     }
     
@@ -108,6 +163,8 @@ class FileTransferReceiver {
    * @returns {Object|null} - The completed file data or null if there was an error
    */
   processLastMessage(hexData) {
+    console.log("Processing last message:", hexData);
+    
     const lastBytes = this.hexToBytes(hexData);
     
     if (lastBytes[0] !== 0x03) {
@@ -119,12 +176,26 @@ class FileTransferReceiver {
       this.fileName = new TextDecoder().decode(new Uint8Array(lastBytes.slice(1)));
     }
     
+    // Check if we've received all expected chunks
+    if (!this.receivedChunks) {
+      throw new Error('No chunks received before end message');
+    }
+    
+    // Check for missing chunks
+    const missingChunks = [];
+    for (let i = 0; i < this.expectedChunks; i++) {
+      if (!this.receivedChunks[i]) {
+        missingChunks.push(i);
+      }
+    }
+    
+    if (missingChunks.length > 0) {
+      throw new Error(`Missing chunks: ${missingChunks.join(', ')}`);
+    }
+    
     // Combine all chunks
     const allChunks = [];
     for (let i = 0; i < this.receivedChunks.length; i++) {
-      if (!this.receivedChunks[i]) {
-        throw new Error(`Missing chunk at index ${i}`);
-      }
       allChunks.push(...this.receivedChunks[i]);
     }
     
@@ -157,21 +228,17 @@ class FileTransferReceiver {
     this.transferComplete = true;
     console.log(`Transfer complete: ${this.fileName || "unnamed file"}`);
     
-    if (this.onComplete) {
-      this.onComplete({
-        data: result,
-        fileName: this.fileName,
-        fileType: this.fileType === 0x01 ? 'JSON' : 
-                  this.fileType === 0x02 ? 'CSV' : 'binary'
-      });
-    }
-    
-    return {
+    const finalResult = {
       data: result,
       fileName: this.fileName,
       fileType: this.fileType === 0x01 ? 'JSON' : 
                 this.fileType === 0x02 ? 'CSV' : 'binary'
     };
+    
+    // Reset state for next transfer
+    this.reset();
+    
+    return finalResult;
   }
 
   /**
