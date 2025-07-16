@@ -201,7 +201,17 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
 
     const sendPing = async () => {
       if (connected && writerRef.current) {
-          await sendCommandWithNewline("ping");
+          var year = new Date().getFullYear();
+          var month = new Date().getMonth() + 1; // Months are zero-based
+          var day = new Date().getDate();
+          var weekday = new Date().getDay();
+          var hours = new Date().getHours();
+          var minutes = new Date().getMinutes();
+          var seconds = new Date().getSeconds();
+          var miliseconds = new Date().getMilliseconds();
+          var localDateTime = `${year},${month},${day},${weekday},${hours},${minutes},${seconds},${miliseconds}`;
+          console.log(`Sending ping at ${localDateTime}`);
+          await sendCommandWithNewline("ping," + localDateTime);
       }
     };
 
@@ -219,7 +229,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
     useEffect(() => {
         if (connected) {
             // Send a ping every 5 seconds
-            pingIntervalRef.current = setInterval(sendPing, 5000);
+            //pingIntervalRef.current = setInterval(sendPing, 5000);
         } else {
             // Clear interval on disconnect
             if (pingIntervalRef.current) {
@@ -487,8 +497,16 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
               </div>
             ))}
             </div>
-            <Button size="lg" onClick={connectManually} variant={connected ? "success" : "outline-light"} style={{ margin: '0 5px' }}>
-                <FontAwesomeIcon icon={faSignal} /> <span className="button-text">Connect Robot</span>
+            <Button 
+                size="lg" 
+                onClick={connected ? disconnect : connectManually} 
+                variant={connected ? "success" : "outline-light"} 
+                style={{ margin: '0 5px' }}
+            >
+                <FontAwesomeIcon icon={faSignal} /> 
+                <span className="button-text">
+                    {connected ? "Disconnect Robot" : "Connect Robot"}
+                </span>
             </Button>
             <Button size="lg" onClick={() => sendCommandWithNewline("20,0")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faFile} /> <span className="button-label">Reload data from robot</span>
@@ -496,7 +514,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
             <Button size="lg" onClick={() => sendCommandWithNewline("2")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faWater} /> <span className="button-label">Show moisture data</span>
             </Button>
-            <Button size="lg" onClick={() => sendCommandWithNewline("get_sensor_data")} variant="outline-light" style={{ margin: '0 5px' }}>
+            <Button size="lg" onClick={() => sendCommandWithNewline("20,1")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faFlag} /> <span className="button-label">Download mission data</span>
             </Button>
             <Button size="lg" onClick={() => sendCommandWithNewline("get_sensor_data")} variant="outline-light" style={{ margin: '0 5px' }}>
@@ -507,6 +525,9 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
             </Button>
             <Button size="lg" onClick={() => sendCommandWithNewline("11")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faFileImport} /> <span className="button-label">JSON gantry size</span>
+            </Button>
+            <Button size="lg" onClick={() => sendPing()} variant="outline-light" style={{ margin: '0 5px' }}>
+                <FontAwesomeIcon icon={faFileImport} /> <span className="button-label">PING</span>
             </Button>
             
             {/* File Transfer Modal */}
