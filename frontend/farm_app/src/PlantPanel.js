@@ -99,7 +99,7 @@ const PlantPanel = React.memo((props) => {
     // byte 10 is the moisture threshold as uint8 
     // the remaining bytes are the plant name
 
-    let data = new Uint8Array(11+name.length);
+    /*let data = new Uint8Array(11+name.length);
     data[0] = 0x03;
     data[1] = plant_x & 0xff;
     data[2] = plant_x >> 8;
@@ -120,9 +120,40 @@ const PlantPanel = React.memo((props) => {
     }
 
     //console.log(data);
-    props.sendData(data);
-  }
+    props.sendData(data);*/
+    console.log(props.farmData)
 
+    /*if (props.sendCommand) {
+      props.sendCommand(`4,${name},${sense_x},${sense_y},${plant_x},${plant_y},${moisture_threshhold},${ml_response}`);
+    }*/
+
+    const newFarmData = {
+      ...props.farmData,
+      plants: {
+        ...props.farmData.plants,
+        [name]: {
+          "ml_response": parseInt(ml_response),
+          "moisture_threshhold": parseInt(moisture_threshhold),
+          "sense": [parseInt(sense_x), parseInt(sense_y)],
+          "location": [parseInt(plant_x), parseInt(plant_y)],
+          "id": Object.keys(props.farmData.plants).length + 1
+        }
+      }
+    };
+    
+    // Update the state with the new data
+    props.setFarmData(newFarmData);
+    
+    // Clear the input fields after adding
+    document.getElementById('plant_name').value = '';
+    document.getElementById('water_amount').value = '';
+    document.getElementById('moisture_threshold').value = '';
+    document.getElementById('sense_x').value = '';
+    document.getElementById('sense_y').value = '';
+    document.getElementById('plant_x').value = '';
+    document.getElementById('plant_y').value = '';
+    
+  }
    return (
     <div
       className="scrollable-panel"

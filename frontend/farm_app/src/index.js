@@ -32,6 +32,8 @@ function App() {
 
   const [plantView, setPlantView] = useState("plants");
 
+  const [sendCommandFn, setSendCommandFn] = useState(null);
+
   useEffect(() => {
     //("Farm Data Updated");
     //console.log(farmData);
@@ -71,6 +73,7 @@ function App() {
 
   const deletePlant = useCallback((plant) => {
     const plant_id = farmData.plants[plant].id;
+    console.log("Deleting Plant with ID: ", plant_id);
     setRobotCmd([9, plant_id, 0, 0, 0]);
     
     //console.log("Deleting Plant: ", plant);
@@ -98,7 +101,7 @@ function App() {
                   <Col>
                     <Row style={{padding: '0px 15px'}}>
                       <Col style={{padding: '2px 2px'}}>
-                        <ConnectivityComponent setRobotPos={setRobotPos} datatoSend={datatoSend} robotCmd={robotCmd} setFarmData={setFarmData}/>
+                        <ConnectivityComponent setRobotPos={setRobotPos} datatoSend={datatoSend} robotCmd={robotCmd} setFarmData={setFarmData} onSendCommand={setSendCommandFn}/>
                       </Col>
                     </Row>
                   </Col>
@@ -142,7 +145,7 @@ function App() {
                 <Button variant={plantView === "missions" ? "light" : "outline-light"} onClick={() => setPlantView("missions")}>Missions</Button>
               </ButtonGroup>
 
-              {(plantView === "plants" && farmData.plants != null) && <PlantPanel sendData={memoizedSetDatatoSend} deletePlant={deletePlant} robotPos={robotPos} farmData={farmData} setDesiredPos={setDesiredPos}/>}
+              {(plantView === "plants" && farmData.plants != null) && <PlantPanel sendData={memoizedSetDatatoSend} deletePlant={deletePlant} robotPos={robotPos} farmData={farmData} setDesiredPos={setDesiredPos} setFarmData={setFarmData} sendCommand={sendCommandFn}/>}
               {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel sendData={memoizedSetDatatoSend} machineData={farmData} deleteMission={deleteMission} setDesiredPos={setDesiredPos} robotCmd={memoizedSetRobotCmd}/>}
 
             </div>

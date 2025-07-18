@@ -13,8 +13,8 @@
                 15
             ],
             "locations": [
-                    "tomato_1",
-                    "spicy pepper 1"
+                    "tomato",
+                    "basil"
                 ]
         },
         {
@@ -26,9 +26,9 @@
                 30
             ],
             "locations": [
-                    "tomato_1",
-                    "spicy pepper 1",
-                    "switch_1"
+                    "raddish",
+                    "beet",
+                    "tomato"
                 ]
         }
     ],
@@ -43,7 +43,8 @@
                 109,
                 114
             ],
-            "moisture_threshhold": 0.5
+            "moisture_threshhold": 0.5,
+            "id": 1
         },
         "basil": {
             "ml_response": 20,
@@ -55,7 +56,8 @@
                 249.0,
                 143.0
             ],
-            "moisture_threshhold": 0.4
+            "moisture_threshhold": 0.4,
+            "id": 2
         },
         "raddish": {
             "ml_response": 30,
@@ -67,7 +69,8 @@
                 462,
                 211
             ],
-            "moisture_threshhold": 0.2
+            "moisture_threshhold": 0.2,
+            "id": 3
         },
         "beet": {
             "ml_response": 30,
@@ -79,7 +82,8 @@
                 494,
                 27
             ],
-            "moisture_threshhold": 0.2
+            "moisture_threshhold": 0.2,
+            "id": 4
         }
     }
 }

@@ -119,7 +119,7 @@ function FileDownloadManager({ packet, setFarmData }) {
 
 
 
-function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos }) {
+function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos, onSendCommand }) {
     //console.log(robotCmd);
     const pingIntervalRef = useRef(null);
     const [connected, setConnected] = useState(false);
@@ -217,7 +217,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
 
     // Add a log entry
     useEffect(() => {
-      if (robotCmd != null)
+      if (robotCmd != null)                     
       {
           //console.log("Robot Command: ", robotCmd); 
           const sendCmdStr = robotCmd.toString();
@@ -229,7 +229,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
     useEffect(() => {
         if (connected) {
             // Send a ping every 5 seconds
-            //pingIntervalRef.current = setInterval(sendPing, 5000);
+            pingIntervalRef.current = setInterval(sendPing, 5000);
         } else {
             // Clear interval on disconnect
             if (pingIntervalRef.current) {
@@ -469,6 +469,12 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
       }
       };
 
+      useEffect(() => {
+        if (onSendCommand) {
+            onSendCommand(sendCommandWithNewline);
+        }
+    }, [onSendCommand]);
+
       const clearLog = () => {
       setLogs([]);
     };
@@ -500,7 +506,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos 
             <Button 
                 size="lg" 
                 onClick={connected ? disconnect : connectManually} 
-                variant={connected ? "success" : "outline-light"} 
+                variant={connected ? "warning" : "success"} 
                 style={{ margin: '0 5px' }}
             >
                 <FontAwesomeIcon icon={faSignal} /> 
