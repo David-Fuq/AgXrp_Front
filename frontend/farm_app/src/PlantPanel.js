@@ -35,7 +35,7 @@ const PlantPanel = React.memo((props) => {
     document.getElementById(y).value = props.robotPos[1];
   }
 
-  function addPlant(name, ml_response, moisture_threshhold, sense_x, sense_y, plant_x, plant_y) {
+  async function addPlant(name, ml_response, moisture_threshhold, sense_x, sense_y, plant_x, plant_y) {
     // Check that all the fields are filled in
     if (name === "" ||
         ml_response === "" ||
@@ -90,68 +90,43 @@ const PlantPanel = React.memo((props) => {
       return;
     }
 
-    // first byte is the plant message is 0x03
-    // byte 1-2 is the x position as uint16
-    // byte 3-4 is the y position as uint16
-    // byte 5-6 is the sense x position as uint16
-    // byte 7-8 is the sense y position as uint16
-    // byte 9 is the ml to water  as uint8
-    // byte 10 is the moisture threshold as uint8 
-    // the remaining bytes are the plant name
-
-    /*let data = new Uint8Array(11+name.length);
-    data[0] = 0x03;
-    data[1] = plant_x & 0xff;
-    data[2] = plant_x >> 8;
-    data[3] = plant_y & 0xFF;
-    data[4] = plant_y >> 8;
-    data[5] = sense_x & 0xFF;
-    data[6] = sense_x >> 8;
-    data[7] = sense_y & 0xFF;
-    data[8] = sense_y >> 8;
-    
-    data[9] = ml_response;
-    data[10] = moisture_threshhold;
-
-    let encoder = new TextEncoder();
-    let nameArray = encoder.encode(name);
-    for (let i = 0; i < name.length; i++) {
-      data[i+11] = nameArray[i];
-    }
-
-    //console.log(data);
-    props.sendData(data);*/
     console.log(props.farmData)
 
-    /*if (props.sendCommand) {
-      props.sendCommand(`4,${name},${sense_x},${sense_y},${plant_x},${plant_y},${moisture_threshhold},${ml_response}`);
-    }*/
+    if (props.sendCommand) {
+      try {
+      await props.sendCommand(`4,${name},${sense_x},${sense_y},${plant_x},${plant_y},${moisture_threshhold},${ml_response}`);
 
-    const newFarmData = {
-      ...props.farmData,
-      plants: {
-        ...props.farmData.plants,
-        [name]: {
-          "ml_response": parseInt(ml_response),
-          "moisture_threshhold": parseInt(moisture_threshhold),
-          "sense": [parseInt(sense_x), parseInt(sense_y)],
-          "location": [parseInt(plant_x), parseInt(plant_y)],
-          "id": Object.keys(props.farmData.plants).length + 1
+      const newFarmData = {
+        ...props.farmData,
+        plants: {
+          ...props.farmData.plants,
+          [name]: {
+            "ml_response": parseInt(ml_response),
+            "moisture_threshhold": parseInt(moisture_threshhold),
+            "sense": [parseInt(sense_x), parseInt(sense_y)],
+            "location": [parseInt(plant_x), parseInt(plant_y)],
+            "id": Object.keys(props.farmData.plants).length + 1
+          }
         }
+      };
+      
+      // Update the state with the new data
+      props.setFarmData(newFarmData);
+      
+      // Clear the input fields after adding
+      document.getElementById('plant_name').value = '';
+      document.getElementById('water_amount').value = '';
+      document.getElementById('moisture_threshold').value = '';
+      document.getElementById('sense_x').value = '';
+      document.getElementById('sense_y').value = '';
+      document.getElementById('plant_x').value = '';
+      document.getElementById('plant_y').value = '';
+      
+      } catch (error) {
+        console.error("Error sending command:", error);
+        alert("Failed to add plant. Please try again.");
       }
-    };
-    
-    // Update the state with the new data
-    props.setFarmData(newFarmData);
-    
-    // Clear the input fields after adding
-    document.getElementById('plant_name').value = '';
-    document.getElementById('water_amount').value = '';
-    document.getElementById('moisture_threshold').value = '';
-    document.getElementById('sense_x').value = '';
-    document.getElementById('sense_y').value = '';
-    document.getElementById('plant_x').value = '';
-    document.getElementById('plant_y').value = '';
+    }
     
   }
    return (

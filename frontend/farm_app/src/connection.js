@@ -467,13 +467,14 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
           addLog(`Command send error: ${err.name} - ${err.message}`, 'error');
           return false;
       }
-      };
+    };
 
       useEffect(() => {
-        if (onSendCommand) {
-            onSendCommand(sendCommandWithNewline);
-        }
-    }, [onSendCommand]);
+      if (onSendCommand && typeof onSendCommand === 'function') {
+          console.log("Registering sendCommandWithNewline function", typeof sendCommandWithNewline);
+          onSendCommand(sendCommandWithNewline);
+      }
+      }, [onSendCommand]);
 
       const clearLog = () => {
       setLogs([]);

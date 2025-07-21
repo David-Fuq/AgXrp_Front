@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 
 import { createRoot } from 'react-dom/client'
 import reportWebVitals from './reportWebVitals';
@@ -32,7 +32,14 @@ function App() {
 
   const [plantView, setPlantView] = useState("plants");
 
-  const [sendCommandFn, setSendCommandFn] = useState(null);
+  const sendCommandRef = useRef(null);
+  const sendCommand = useCallback((cmd) => {
+    if (typeof sendCommandRef.current === 'function') {
+      return sendCommandRef.current(cmd);
+    }
+    console.log("Command function not available yet");
+    return Promise.resolve(false);
+  }, []);
 
   useEffect(() => {
     //("Farm Data Updated");
@@ -101,7 +108,10 @@ function App() {
                   <Col>
                     <Row style={{padding: '0px 15px'}}>
                       <Col style={{padding: '2px 2px'}}>
-                        <ConnectivityComponent setRobotPos={setRobotPos} datatoSend={datatoSend} robotCmd={robotCmd} setFarmData={setFarmData} onSendCommand={setSendCommandFn}/>
+                        <ConnectivityComponent setRobotPos={setRobotPos} datatoSend={datatoSend} robotCmd={robotCmd} setFarmData={setFarmData} onSendCommand={(fn) => {
+    console.log("Setting command function", typeof fn);
+    sendCommandRef.current = fn;
+  }}/>
                       </Col>
                     </Row>
                   </Col>
@@ -145,8 +155,8 @@ function App() {
                 <Button variant={plantView === "missions" ? "light" : "outline-light"} onClick={() => setPlantView("missions")}>Missions</Button>
               </ButtonGroup>
 
-              {(plantView === "plants" && farmData.plants != null) && <PlantPanel sendData={memoizedSetDatatoSend} deletePlant={deletePlant} robotPos={robotPos} farmData={farmData} setDesiredPos={setDesiredPos} setFarmData={setFarmData} sendCommand={sendCommandFn}/>}
-              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel sendData={memoizedSetDatatoSend} machineData={farmData} deleteMission={deleteMission} setDesiredPos={setDesiredPos} robotCmd={memoizedSetRobotCmd}/>}
+              {(plantView === "plants" && farmData.plants != null) && <PlantPanel sendData={memoizedSetDatatoSend} deletePlant={deletePlant} robotPos={robotPos} farmData={farmData} setDesiredPos={setDesiredPos} setFarmData={setFarmData} sendCommand={sendCommand}/>}
+              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel sendData={memoizedSetDatatoSend} machineData={farmData} deleteMission={deleteMission} setDesiredPos={setDesiredPos} robotCmd={memoizedSetRobotCmd} sendCommand={sendCommand}/>}
 
             </div>
           }
