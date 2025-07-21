@@ -8,32 +8,31 @@ import './settingsPanel.css';
 import Modal from 'react-bootstrap/Modal';
 
 const SettingsPanel = React.memo((props) => {
-  console.log("Settings Data: ", props.settingsData);
+  console.log("Settings Data: ", props.machineData);
   
   const [checkedPlants, setCheckedPlants] = useState([]);
   
-  const addMission = (name, action, hour, minute) => {
+  async function addMission(name, action, hour, minute) {
     console.log("Adding Mission: ", action, hour, minute);
   
-    // 1th byte is hour
-    // 2th byte is minute
-    // 3th byte is action
-    // 4-20th bytes is name
-  
-    let data = new Uint8Array(4+name.length);
-    data[0] = 0x04;
-    data[1] = hour;
-    data[2] = minute;
-    data[3] = Number(action);
-  
-    let encoder = new TextEncoder();
-    let nameArray = encoder.encode(name);
-    for (let i = 0; i < nameArray.length; i++) {
-      data[i+4] = nameArray[i];
+    if (props.sendCommand) {
+      try{
+        while (true){
+        var mission_id = Math.floor(Math.random() * (1500 - 1) + 1);
+        console.log("Mission ID: ", mission_id);
+        console.log("Current Missions: ", props.machineData);
+        if (!Object.values(props.machineData.missions).some(mission => mission.id === mission_id)) {
+          console.log("Found a unique ID for mission");
+          break; // Found a unique ID
+        }
+      }
+      await props.sendCommand(`CHA,12,${name},${hour},${minute},${action},${mission_id}`);
+      //TODO añadir en el farmData
+      } catch (error) {
+        console.error("Error adding mission:", error);
+        alert("Failed to add mission. Please try again.");
+      }
     }
-  
-    console.log(data);
-    props.sendData(data);      
   }
 
   const PlantSelectionPanel = ({mission_index}) => {

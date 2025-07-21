@@ -49,6 +49,7 @@ function App() {
       setFarmSize([farmData.gantry_size[0]/100, farmData.gantry_size[1]/100]);
       //console.log("Setting farm size to:", farmData.gantry_size);
     }
+    console.log("Farm Data Updated: ", farmData);
   }, [farmData]);
 
   const memoizedSetRobotCmd = useCallback((cmd) => {
@@ -63,7 +64,8 @@ function App() {
   }, []);
 
   const deleteMission = useCallback((mission_id) => {
-    setRobotCmd([8, mission_id, 0, 0, 0]);
+    //setRobotCmd([8, mission_id, 0, 0, 0]);
+    sendCommand(`CHA,8,${mission_id}`); // Send command to delete the mission
   
     // Create a new array of missions without the deleted mission
     const newMissions = farmData.missions.filter((m) => m.mission_id !== mission_id);
@@ -81,7 +83,8 @@ function App() {
   const deletePlant = useCallback((plant) => {
     const plant_id = farmData.plants[plant].id;
     console.log("Deleting Plant with ID: ", plant_id);
-    setRobotCmd([9, plant_id, 0, 0, 0]);
+    //setRobotCmd([9, plant_id, 0, 0, 0]);
+    sendCommand(`CHA,9,${plant_id}`); // Send command to delete the plant
     
     //console.log("Deleting Plant: ", plant);
 

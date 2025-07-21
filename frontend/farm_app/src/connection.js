@@ -167,6 +167,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
         if (result.fileType === 'JSON') {
             // Update the farm data if we received JSON data
             setFarmData(result.data);
+            console.log(result.data);
         }
         
         // Trigger a download for the file

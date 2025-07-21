@@ -94,8 +94,17 @@ const PlantPanel = React.memo((props) => {
 
     if (props.sendCommand) {
       try {
-      await props.sendCommand(`4,${name},${sense_x},${sense_y},${plant_x},${plant_y},${moisture_threshhold},${ml_response}`);
-
+        //CHA as in change
+      while (true){
+        var plant_id = Math.floor(Math.random() * (1500 - 1) + 1);
+        console.log("Plant ID: ", plant_id);
+        if (!Object.values(props.farmData.plants).some(plant => plant.id === plant_id)) {
+          break; // Found a unique ID
+        }
+      }
+      //var id_nuevo = Object.keys(props.farmData.plants).length + 1;
+      await props.sendCommand(`CHA,4,${name},${sense_x},${sense_y},${plant_x},${plant_y},${moisture_threshhold},${ml_response},${plant_id}`);
+      
       const newFarmData = {
         ...props.farmData,
         plants: {
@@ -105,7 +114,7 @@ const PlantPanel = React.memo((props) => {
             "moisture_threshhold": parseInt(moisture_threshhold),
             "sense": [parseInt(sense_x), parseInt(sense_y)],
             "location": [parseInt(plant_x), parseInt(plant_y)],
-            "id": Object.keys(props.farmData.plants).length + 1
+            "id": plant_id
           }
         }
       };
