@@ -214,6 +214,7 @@ class FileTransferReceiver {
       const jsonString = new TextDecoder().decode(combinedData);
       try {
         result = JSON.parse(jsonString);
+        console.log("Parsed JSON data:", result);
       } catch (e) {
         console.error("Error parsing JSON:", e, jsonString);
         result = jsonString; // Return as string if parsing fails

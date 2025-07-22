@@ -357,6 +357,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
                     // addLog(`Received JSON data: ${JSON.stringify(parsedJson, null, 2)}`, 'received');
                     // setJsonData(parsedJson); // Store in state if needed
                     alert(jsonBuffer);
+                    console.log("JSON Data: ", jsonBuffer);
                   } catch (e) {
                     addLog(`Error parsing JSON: ${e.message}`, 'error');
                     addLog(`Raw JSON buffer: ${jsonBuffer}`, 'error');
@@ -503,7 +504,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
               <div key={index} className={`log-entry ${log.type}`}>
                 [{log.timestamp.toLocaleTimeString()}] {log.message}
               </div>
-            ))}
+            ))} 
             </div>
             <Button 
                 size="lg" 
