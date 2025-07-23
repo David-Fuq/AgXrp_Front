@@ -130,7 +130,7 @@ const SettingsPanel = React.memo((props) => {
         show={showModal}
         onHide={() => {
           setShowModal(false);
-          props.sendData(new Uint8Array([0]));      
+          //props.sendData(new Uint8Array([0]));      
         }}
       >
         <Modal.Header closeButton>

@@ -16,45 +16,6 @@
             "moisture_threshhold": 0.2,
             "ml_response": 30,
             "id": 3
-        },
-        "PRUEBA1": {
-            "sense": [
-                50,
-                50
-            ],
-            "location": [
-                50,
-                50
-            ],
-            "moisture_threshhold": 4,
-            "id": 915,
-            "ml_response": 37
-        },
-        "Tulipan": {
-            "id": 168,
-            "location": [
-                100,
-                100
-            ],
-            "moisture_threshhold": 3,
-            "ml_response": 50,
-            "sense": [
-                100,
-                100
-            ]
-        },
-        "Pepino": {
-            "ml_response": 57,
-            "location": [
-                100,
-                100
-            ],
-            "moisture_threshhold": 4,
-            "id": 938,
-            "sense": [
-                100,
-                100
-            ]
         }
     },
     "missions": [
@@ -71,46 +32,6 @@
             ],
             "mission_name": "mission_2",
             "mission_id": 2
-        },
-        {
-            "time": [
-                15,
-                19
-            ],
-            "type": "sense_moisture",
-            "locations": [],
-            "mission_name": "Prueba1",
-            "mission_id": 1116
-        },
-        {
-            "time": [
-                15,
-                19
-            ],
-            "type": "sense_moisture",
-            "locations": [],
-            "mission_name": "Prueba1",
-            "mission_id": 997
-        },
-        {
-            "time": [
-                15,
-                19
-            ],
-            "type": "sense_moisture",
-            "locations": [],
-            "mission_name": "Prueba1",
-            "mission_id": 951
-        },
-        {
-            "time": [
-                15,
-                19
-            ],
-            "type": "sense_moisture",
-            "locations": [],
-            "mission_name": "Prueba1",
-            "mission_id": 1471
         }
     ]
 }

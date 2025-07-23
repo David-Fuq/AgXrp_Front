@@ -149,7 +149,7 @@ function App() {
         </div>
 
         <OptionsView
-          position={{top: '14em', left: '30px'}}
+          position={{top: '15em', left: '30px'}}
           content={
             <div>
 

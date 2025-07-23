@@ -24,15 +24,40 @@
     color: rgb(0, 0, 0);
 }
 
+.log-wrapper {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
 .log-container {
-    height: 120px;
+    width: 100%; /* Match parent width (which will match button width) */
+    max-width: 100%;
     overflow-y: auto;
+    overflow-x: auto;
     border: 1px solid #ccc;
     padding: 10px;
     font-family: monospace;
     background-color: #f0f0f0;
     white-space: pre-wrap;
     margin-bottom: 15px;
+    word-break: break-all;
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+.show-log {
+    max-height: 120px;
+    opacity: 1;
+}
+
+.hide-log {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    border: none;
+    opacity: 0;
+    overflow: hidden;
 }
 
 .button-icon {

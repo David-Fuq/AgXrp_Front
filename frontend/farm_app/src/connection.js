@@ -1,121 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { faSignal, faFile, faFlag, faDroplet, faWater, faUpRightAndDownLeftFromCenter, faFileImport } from '@fortawesome/free-solid-svg-icons';
+import { faSignal, faFile, faFlag, faDroplet, faWater, faUpRightAndDownLeftFromCenter, faFileImport, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import './connection.css';
 import FileTransferReceiver from './FileTransferReciever';
-
-//TODO -> Download data. Should be just missing transform json into file.
-/*
-function FileDownloadManager({ packet, setFarmData }) {
-    const [downloadStatus, setDownloadStatus] = useState(null);
-    const [buffer_data, setBufferData] = useState(new Uint8Array(0));
-    const [file_type, setFileType] = useState(0);
-    const [buffer_checksum, setBufferChecksum] = useState(0);
-    const [message_counter, setMessageCounter] = useState(0);
-    const [message_length, setMessageLength] = useState(0);
-
-    useEffect(() => {
-        if (packet != null) {
-            processPacket(packet);
-        }
-    }, [packet]);
-
-    const resetBuffer = () => {
-        setBufferData(new Uint8Array(0));
-        setFileType(0);
-        setBufferChecksum(0);
-        setMessageCounter(0);
-        setMessageLength(0);
-    };
-
-    const calculatePacketChecksum = (payload) => {
-        let checksum = 0;
-        for (let i = 0; i < payload.length; i++) checksum += payload[i];
-        return checksum % 256;
-    };
-
-    const processDataAsJson = () => {
-        const data = new TextDecoder().decode(buffer_data);
-        try {
-            setFarmData(JSON.parse(data));
-        } catch {
-            resetBuffer();
-        }
-    };
-
-    const processDataAsCsv = (file_name) => {
-        const data = new TextDecoder().decode(buffer_data);
-        try {
-            const blob = new Blob([data], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = file_name + ".csv";
-            a.click();
-        } catch {
-            resetBuffer();
-        }
-    };
-
-    const processHeader = (packet) => {
-        resetBuffer();
-        let message_checksum = packet.getUint8(packet.buffer.byteLength - 1);
-        let packet_checksum = calculatePacketChecksum(new Uint8Array(packet.buffer.slice(0, -1)));
-        if (message_checksum !== packet_checksum) return;
-        setFileType(packet.getUint8(1));
-        setMessageLength(packet.getUint8(2));
-        setBufferChecksum(packet.getUint8(3));
-        setDownloadStatus(`Downloading data 0 of ${packet.getUint8(2)}`);
-    };
-
-    const processPayload = (packet) => {
-        let message_checksum = packet.getUint8(packet.buffer.byteLength - 1);
-        let packet_checksum = calculatePacketChecksum(new Uint8Array(packet.buffer.slice(0, -1)));
-        if (message_checksum !== packet_checksum) return;
-
-        let packet_index = packet.getUint8(1);
-        if (packet_index !== message_counter) return;
-
-        let payload = new Uint8Array(packet.buffer.slice(2, -1));
-        setBufferData(prev => new Uint8Array([...prev, ...payload]));
-        setMessageCounter(prev => prev + 1);
-        setDownloadStatus(`Downloading data ${packet_index + 1} of ${message_length}`);
-    };
-
-    const processFooter = (packet) => {
-        setDownloadStatus("Downloading complete.");
-        if (file_type === 1) processDataAsJson();
-        else if (file_type === 2) {
-            let file_name = new TextDecoder().decode(new Uint8Array(packet.buffer.slice(1)));
-            processDataAsCsv(file_name);
-        }
-        resetBuffer();
-        setDownloadStatus(null);
-    };
-
-    const processPacket = (packet) => {
-        switch (packet.getUint8(0)) {
-            case 1: processHeader(packet); break;
-            case 2: processPayload(packet); break;
-            case 3: processFooter(packet); break;
-            default: resetBuffer();
-        }
-    };
-
-    return downloadStatus ? (
-        <div className="modal show" style={{ display: 'block', position: 'fixed', zIndex: 10000 }}>
-            <Modal.Dialog>
-                <Modal.Header closeButton>
-                    <Modal.Title>File Transfer Manager</Modal.Title>
-                </Modal.Header>
-                <Modal.Body><p>{downloadStatus}</p></Modal.Body>
-            </Modal.Dialog>
-        </div>
-    ) : null;
-}
-    */
 
 
 
@@ -128,6 +17,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
     const [busy, setBusy] = useState(false);
     const [showFileTransferModal, setShowFileTransferModal] = useState(false);
     const [transferProgress, setTransferProgress] = useState({ current: 0, total: 0 });
+    const [showLogs, setShowLogs] = useState(false);
 
     const [jsonData, setJsonData] = useState(null);
     const [isCollectingJson, setIsCollectingJson] = useState(false);
@@ -163,6 +53,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
 
     const handleFileTransferComplete = (result) => {
         setShowFileTransferModal(false);
+        console.log('File transfer complete:', result);
         
         if (result.fileType === 'JSON') {
             // Update the farm data if we received JSON data
@@ -255,6 +146,11 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
           logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
         }
       }, 10);
+      
+      // Auto-show logs for errors and important messages
+      if (type === 'error') {
+        setShowLogs(true);
+      }
     };
 
     // Check if a port matches our XRP devices
@@ -462,7 +358,9 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
       
       try {
           const commandWithNewline = cmd + '\r\n';
+          if (!cmd.startsWith('ping,')){
           addLog(`Sending command: ${cmd}`, 'sent');
+          }
           await writerRef.current.write(textEncoder.encode(commandWithNewline));
           return true;
       } catch (err) {
@@ -499,12 +397,27 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
 
     return (        
         <div>
-            <div className="log-container" ref={logContainerRef}>
-            {logs.map((log, index) => (
-              <div key={index} className={`log-entry ${log.type}`}>
-                [{log.timestamp.toLocaleTimeString()}] {log.message}
-              </div>
-            ))} 
+            <div className="log-wrapper">
+                <Button
+                    size="sm"
+                    onClick={() => setShowLogs(!showLogs)}
+                    variant="outline-secondary"
+                    style={{ marginBottom: '5px', width: '100%', textAlign: 'left' }}
+                >
+                    <FontAwesomeIcon icon={showLogs ? faChevronUp : faChevronDown} />
+                    <span style={{ marginLeft: '10px' }}>
+                        {showLogs ? 'Hide Logs' : 'Show Logs'} 
+                        ({logs.length} entries)
+                    </span>
+                </Button>
+                
+                <div className={`log-container ${showLogs ? 'show-log' : 'hide-log'}`} ref={logContainerRef}>
+                {logs.map((log, index) => (
+                  <div key={index} className={`log-entry ${log.type}`}>
+                    [{log.timestamp.toLocaleTimeString()}] {log.message}
+                  </div>
+                ))} 
+                </div>
             </div>
             <Button 
                 size="lg" 
@@ -535,9 +448,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
             <Button size="lg" onClick={() => sendCommandWithNewline("11")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faFileImport} /> <span className="button-label">JSON gantry size</span>
             </Button>
-            <Button size="lg" onClick={() => sendPing()} variant="outline-light" style={{ margin: '0 5px' }}>
-                <FontAwesomeIcon icon={faFileImport} /> <span className="button-label">PING</span>
-            </Button>
+
             
             {/* File Transfer Modal */}
             <Modal 
