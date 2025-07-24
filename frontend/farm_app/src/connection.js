@@ -21,6 +21,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
     const [showFileTransferModal, setShowFileTransferModal] = useState(false);
     const [transferProgress, setTransferProgress] = useState({ current: 0, total: 0 });
     const [showLogs, setShowLogs] = useState(false);
+    const messageBufferRef = useRef(""); // Buffer to store incomplete messages
 
     const [jsonData, setJsonData] = useState(null);
     const [isCollectingJson, setIsCollectingJson] = useState(false);
@@ -202,7 +203,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
           }
       };
 
-    const startReadLoop = async () => {
+const startReadLoop = async () => {
   if (!portRef.current || !portRef.current.readable) {
       addLog('Cannot start read loop - no readable port', 'error');
       return;
@@ -210,6 +211,9 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
   
   addLog('Starting read loop...', 'system');
   readerRef.current = portRef.current.readable.getReader();
+  
+  // Reset the message buffer when starting a new read loop
+  messageBufferRef.current = "";
   
   try {
       let jsonBuffer = "";
@@ -230,6 +234,12 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
             
             // Pass all incoming text to the file transfer receiver
             fileTransferRef.current.processIncomingText(text);
+            
+            // Append the new text to our message buffer for processing partial messages
+            messageBufferRef.current += text;
+            
+            // Check for "Moved to (x,y)" pattern in the accumulated buffer
+            checkForMovedToPattern();
             
             // Process the received text line by line for other commands
             const lines = text.split('\n');
@@ -278,6 +288,9 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
             }
         }
       }
+      
+      // Check one more time for any partial messages at the end of each read cycle
+      checkForMovedToPattern();
   } catch (err) {
       addLog(`Read error: ${err.name} - ${err.message}`, 'error');
       if (readerRef.current) {
@@ -320,6 +333,9 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
 
     const disconnect = async () => {
       disconnectFlagRef.current = true;
+      
+      // Clear the message buffer on disconnect
+      messageBufferRef.current = "";
       
       try {
         if (readerRef.current) {
@@ -382,6 +398,37 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
 
       const clearLog = () => {
       setLogs([]);
+    };
+
+    // Function to check for "Moved to (x,y)" pattern in the message buffer
+    const checkForMovedToPattern = () => {
+      // Regular expression to match the pattern "Moved to (x,y)" where x and y are numbers
+      // This regex will find the pattern even if it's split across multiple packets
+      const movedToRegex = /Moved\s+to\s*\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)/g;
+      
+      // Check for matches in the buffer
+      let match;
+      while ((match = movedToRegex.exec(messageBufferRef.current)) !== null) {
+        const x = parseFloat(match[1]);
+        const y = parseFloat(match[2]);
+        
+        // Log the detected position
+        addLog(`Robot position detected: (${x}, ${y})`, 'system');
+        
+        // Update the robot position using the setRobotPos function passed as prop
+        // Create a completely new array to ensure React detects the change
+        // The z coordinate is set to 1 to ensure the robot is visible on the canvas
+        
+        const newPosition = [x, y, 1, null, null];
+        console.log("Setting robot position from serial:", newPosition);
+        setRobotPos(newPosition);
+      }
+      
+      // Keep a reasonable buffer size (last 200 characters) to prevent memory issues
+      // while ensuring we don't cut off potential partial messages
+      if (messageBufferRef.current.length > 200) {
+        messageBufferRef.current = messageBufferRef.current.slice(-200);
+      }
     };
 
     // Check for WebSerial API support

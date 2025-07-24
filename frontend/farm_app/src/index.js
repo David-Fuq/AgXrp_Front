@@ -207,7 +207,7 @@ function App() {
         <OptionsView
           position={{bottom: '50px', right: '50px'}}
           content={
-            <MovementControlPanel desiredPos={desiredPos} setDesiredPos={setDesiredPos} setRobotCmd={setRobotCmd}/>
+            <MovementControlPanel desiredPos={desiredPos} setDesiredPos={setDesiredPos} setRobotCmd={setRobotCmd} setRobotPos={setRobotPos} robotPos = {robotPos}/>
           }
         />
     </>

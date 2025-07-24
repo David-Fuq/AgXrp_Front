@@ -193,6 +193,11 @@ const AbsoluteMovementControlPanel = (props) => {
 
 function MovementControlPanel(props) {
   const [movementPanel, setMovementPanel] = useState('relative');
+  
+  // This effect will run whenever robotPos changes
+  useEffect(() => {
+    console.log("Robot position updated:", props.robotPos);
+  }, [props.robotPos]);
 
     return (
         <div
@@ -291,8 +296,22 @@ function MovementControlPanel(props) {
                           size="lg"
                           variant="outline-light"
                           onClick={() => {
+                            // First send command to the robot
                             props.setRobotCmd([3, 0, 0, 0, 0]);
-                            props.setDesiredPos([0, 0, 0, 0]);}}
+                            // Then update UI state - both operations are asynchronous
+                            props.setDesiredPos([0, 0, 0, 0]);
+                            
+                            // Create a completely new array to force a React state update
+                            const homePosition = [0, 0, 1, null, null];
+                            console.log("Setting robot position to home:", homePosition);
+                            props.setRobotPos(homePosition);
+                            
+                            // Force a timeout to update UI if needed
+                            setTimeout(() => {
+                              console.log("Confirming robot at home position");
+                              props.setRobotPos([...homePosition]); // Create a new array reference
+                            }, 50);
+                          }}
                         >
                           <FontAwesomeIcon icon={faHome}/>
                         </Button>
