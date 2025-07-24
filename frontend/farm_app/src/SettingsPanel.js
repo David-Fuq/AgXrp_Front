@@ -132,6 +132,9 @@ const SettingsPanel = React.memo((props) => {
           setShowModal(false);
           //props.sendData(new Uint8Array([0]));      
         }}
+        centered
+        style={{ zIndex: 9999 }}
+        dialogClassName="modal-on-top"
       >
         <Modal.Header closeButton>
           <Modal.Title>Select Plants for mission: {props.machineData.missions[mission_index].mission_name}</Modal.Title>

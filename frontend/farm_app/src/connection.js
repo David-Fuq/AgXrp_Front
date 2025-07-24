@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { faSignal, faFile, faFlag, faDroplet, faWater, faUpRightAndDownLeftFromCenter, faFileImport, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faSignal, faFile, faFlag, faDroplet, faWater, faUpRightAndDownLeftFromCenter, faFileImport, faChevronDown, faChevronUp, faArrowUpFromGroundWater, faArrowUpFromWaterPump, faGasPump } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
+import Form from 'react-bootstrap/Form';
 import './connection.css';
 import FileTransferReceiver from './FileTransferReciever';
 
@@ -10,6 +11,8 @@ import FileTransferReceiver from './FileTransferReciever';
 
 function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos, onSendCommand }) {
     //console.log(robotCmd);
+    const [showModal, setShowModal] = useState(false);
+    const [pumpDuration, setPumpDuration] = useState(0); 
     const pingIntervalRef = useRef(null);
     const [connected, setConnected] = useState(false);
     const [message, setMessage] = useState('');
@@ -288,6 +291,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
   
   addLog('Read loop ended', 'system');
 };
+
       const sendControlCommand = async (command) => {
       switch (command) {
         case 'raw':
@@ -406,7 +410,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
                 >
                     <FontAwesomeIcon icon={showLogs ? faChevronUp : faChevronDown} />
                     <span style={{ marginLeft: '10px' }}>
-                        {showLogs ? 'Hide Logs' : 'Show Logs'} 
+                        {showLogs ? 'Hide Log ' : 'Show Log '} 
                         ({logs.length} entries)
                     </span>
                 </Button>
@@ -430,16 +434,48 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
                     {connected ? "Disconnect Robot" : "Connect Robot"}
                 </span>
             </Button>
+            <Modal
+            show={showModal}
+            onHide={() => setShowModal(false)}
+            centered
+            style={{ zIndex: 9999 }}
+            dialogClassName="modal-on-top"
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title>Pump Water Manually</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                  <Form>
+                    <Form.Group controlId="pumpDuration" style={{ marginBottom: '15px' }}>
+                        <Form.Label>Amount of Water (ml)</Form.Label>
+                        <Form.Control
+                            type="number"
+                            placeholder="Enter amount of water in ml"
+                            onChange={(e) => setPumpDuration(e.target.value)}
+                        />
+                    </Form.Group>
+                    <Button 
+                        variant="primary" 
+                        onClick={() => {
+                            sendCommandWithNewline(`12,${pumpDuration}`);
+                            setShowModal(false);
+                        }}
+                    >
+                        Start Pump
+                    </Button>
+                  </Form>
+                </Modal.Body>
+            </Modal>
             <Button size="lg" onClick={() => sendCommandWithNewline("20,0")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faFile} /> <span className="button-label">Reload data from robot</span>
             </Button>
-            <Button size="lg" onClick={() => sendCommandWithNewline("2")} variant="outline-light" style={{ margin: '0 5px' }}>
-                <FontAwesomeIcon icon={faWater} /> <span className="button-label">Show moisture data</span>
+            <Button size="lg" onClick={() => sendCommandWithNewline("20,2")} variant="outline-light" style={{ margin: '0 5px' }}>
+                <FontAwesomeIcon icon={faWater} /> <span className="button-label">Download moisture data</span>
             </Button>
             <Button size="lg" onClick={() => sendCommandWithNewline("20,1")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faFlag} /> <span className="button-label">Download mission data</span>
             </Button>
-            <Button size="lg" onClick={() => sendCommandWithNewline("get_sensor_data")} variant="outline-light" style={{ margin: '0 5px' }}>
+            <Button size="lg" onClick={() => sendCommandWithNewline("20,3")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faDroplet} /> <span className="button-label">Download watering data</span>
             </Button>
             <Button size="lg" onClick={() => sendCommandWithNewline("6")} variant="outline-light" style={{ margin: '0 5px' }}>
@@ -448,14 +484,22 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
             <Button size="lg" onClick={() => sendCommandWithNewline("11")} variant="outline-light" style={{ margin: '0 5px' }}>
                 <FontAwesomeIcon icon={faFileImport} /> <span className="button-label">JSON gantry size</span>
             </Button>
+            <Button size="lg" onClick={() => sendCommandWithNewline("2")} variant="outline-light" style={{ margin: '0 5px' }}>
+                <FontAwesomeIcon icon={faArrowUpFromGroundWater} /> <span className="button-label">Get moisture reading</span>
+            </Button>
+            <Button size="lg" onClick={() => setShowModal(true)} variant="outline-light" style={{ margin: '0 5px' }}>
+                <FontAwesomeIcon icon={faGasPump} /> <span className="button-label">Pump Water Manually</span>
+            </Button>
 
             
             {/* File Transfer Modal */}
             <Modal 
-                show={showFileTransferModal} 
+                show={showFileTransferModal}
                 centered
                 backdrop="static"
                 keyboard={false}
+                style={{ zIndex: 9999 }}
+                dialogClassName="modal-on-top"
             >
                 <Modal.Header>
                     <Modal.Title>File Transfer</Modal.Title>
