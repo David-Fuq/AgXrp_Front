@@ -128,6 +128,7 @@ const SpudBuddy = ({ position, color, setDesiredPos, isDraggable=false }) => {
     //console.log("DONDE ESTAR EL ERROR")
     //console.log("Spud clicked");
     //console.log("Spud position: ", spudPos);
+    if (setDesiredPos == null) return;
     setMoving(false);
     setDesiredPos([Math.floor(spudPos[0] * 100), Math.floor(spudPos[1] * 100), 1]);
   }
