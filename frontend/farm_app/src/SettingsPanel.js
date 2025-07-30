@@ -8,32 +8,51 @@ import './settingsPanel.css';
 import Modal from 'react-bootstrap/Modal';
 
 const SettingsPanel = React.memo((props) => {
-  console.log("Settings Data: ", props.settingsData);
+  console.log("Settings Data: ", props.machineData);
   
   const [checkedPlants, setCheckedPlants] = useState([]);
   
-  const addMission = (name, action, hour, minute) => {
+  async function addMission(name, action, hour, minute) {
     console.log("Adding Mission: ", action, hour, minute);
   
-    // 1th byte is hour
-    // 2th byte is minute
-    // 3th byte is action
-    // 4-20th bytes is name
-  
-    let data = new Uint8Array(4+name.length);
-    data[0] = 0x04;
-    data[1] = hour;
-    data[2] = minute;
-    data[3] = Number(action);
-  
-    let encoder = new TextEncoder();
-    let nameArray = encoder.encode(name);
-    for (let i = 0; i < nameArray.length; i++) {
-      data[i+4] = nameArray[i];
+    if (props.sendCommand) {
+      try{
+        while (true){
+        var mission_id = Math.floor(Math.random() * (1500 - 1) + 1);
+        console.log("Mission ID: ", mission_id);
+        console.log("Current Missions: ", props.machineData);
+        if (!Object.values(props.machineData.missions).some(mission => mission.id === mission_id)) {
+          console.log("Found a unique ID for mission");
+          break; // Found a unique ID
+        }
+      }
+      await props.sendCommand(`CHA,12,${name},${hour},${minute},${action},${mission_id}`);
+
+      const newMachineData = {
+        ...props.machineData,
+        missions: [
+          ...props.machineData.missions,
+          {
+            'mission_id': mission_id,
+            'mission_name': name,
+            'type': action,
+            'time': [hour, minute],
+            'locations': []
+          }
+        ]
+      }
+
+      props.setMachineData(newMachineData);
+      document.getElementById('mission_name').value = '';
+      document.getElementById('action').value = '';
+      document.getElementById('hour').value = '';
+      document.getElementById('minute').value = '';
+      //TODO añadir en el farmData
+      } catch (error) {
+        console.error("Error adding mission:", error);
+        alert("Failed to add mission. Please try again.");
+      }
     }
-  
-    console.log(data);
-    props.sendData(data);      
   }
 
   const PlantSelectionPanel = ({mission_index}) => {
@@ -51,15 +70,52 @@ const SettingsPanel = React.memo((props) => {
 
     const handleCheckboxChange = (event) => {
       const plant = event.target.value;
+      console.log(plant);
       // get plant id from props.machineData.plants
       let plant_id = props.machineData.plants[plant].id;
+      console.log("Plant ID: ", plant_id);
       console.log("Plant: ", plant_id);
-      props.robotCmd([10, plant_id, props.machineData.missions[mission_index].mission_id, event.target.checked, 0]);
+      let target_checked = 1;
       if (event.target.checked) {
-        setSelectedPlants([...selectedPlants, plant]);
-      } else {
-        setSelectedPlants(selectedPlants.filter((item) => item !== plant));
+        target_checked = 0;
       }
+      props.sendCommand(`CHA, 10, ${plant_id}, ${props.machineData.missions[mission_index].mission_id}, ${target_checked}`);
+
+      
+
+      const updatedMissions = [...props.machineData.missions];
+      //Adding plant to mission
+      if (event.target.checked) {
+        if (updatedMissions[mission_index].locations.includes(plant)) {
+          console.log("Plant already selected, not adding again");
+        } else {
+          updatedMissions[mission_index] = {
+            ...updatedMissions[mission_index],
+            locations: [...updatedMissions[mission_index].locations, plant]
+          };
+        }
+
+      //Removing plant from mission
+      } else {
+        if (!updatedMissions[mission_index].locations.includes(plant)) {
+          console.log("Plant not selected, not removing");
+        } else {
+          updatedMissions[mission_index] = {
+            ...updatedMissions[mission_index],
+            locations: updatedMissions[mission_index].locations.filter(
+              location => location !== plant
+            )
+          };
+        }
+      }
+
+      const newMachineData = {
+        ...props.machineData,
+        missions: updatedMissions
+      };
+
+      props.setMachineData(newMachineData);
+
     }
 
     return (
@@ -74,8 +130,11 @@ const SettingsPanel = React.memo((props) => {
         show={showModal}
         onHide={() => {
           setShowModal(false);
-          props.sendData(new Uint8Array([0]));      
+          //props.sendData(new Uint8Array([0]));      
         }}
+        centered
+        style={{ zIndex: 9999 }}
+        dialogClassName="modal-on-top"
       >
         <Modal.Header closeButton>
           <Modal.Title>Select Plants for mission: {props.machineData.missions[mission_index].mission_name}</Modal.Title>

@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 
 import { createRoot } from 'react-dom/client'
 import reportWebVitals from './reportWebVitals';
@@ -32,14 +32,24 @@ function App() {
 
   const [plantView, setPlantView] = useState("plants");
 
-  useEffect(() => {
-    console.log("Farm Data Updated");
-    console.log(farmData);
-    if (farmData != null) {
-      console.log(farmData.type);
-      setFarmSize([farmData.gantry_size[0]/100, farmData.gantry_size[1]/100]);
-      console.log("Setting farm size to:", farmData.gantry_size);
+  const sendCommandRef = useRef(null);
+  const sendCommand = useCallback((cmd) => {
+    if (typeof sendCommandRef.current === 'function') {
+      return sendCommandRef.current(cmd);
     }
+    console.log("Command function not available yet");
+    return Promise.resolve(false);
+  }, []);
+
+  useEffect(() => {
+    //("Farm Data Updated");
+    //console.log(farmData);
+    if (farmData != null) {
+      //console.log(farmData.type);
+      setFarmSize([farmData.gantry_size[0]/100, farmData.gantry_size[1]/100]);
+      //console.log("Setting farm size to:", farmData.gantry_size);
+    }
+    console.log("Farm Data Updated: ", farmData);
   }, [farmData]);
 
   const memoizedSetRobotCmd = useCallback((cmd) => {
@@ -48,13 +58,14 @@ function App() {
 
   const memoizedSetDatatoSend = useCallback((data) => {
     if (data != null) {
-      console.log("Setting Data to Send: ", data);
+      //console.log("Setting Data to Send: ", data);
       setDatatoSend(data);
     }
   }, []);
 
   const deleteMission = useCallback((mission_id) => {
-    setRobotCmd([8, mission_id, 0, 0, 0]);
+    //setRobotCmd([8, mission_id, 0, 0, 0]);
+    sendCommand(`CHA,8,${mission_id}`); // Send command to delete the mission
   
     // Create a new array of missions without the deleted mission
     const newMissions = farmData.missions.filter((m) => m.mission_id !== mission_id);
@@ -71,18 +82,35 @@ function App() {
 
   const deletePlant = useCallback((plant) => {
     const plant_id = farmData.plants[plant].id;
-    setRobotCmd([9, plant_id, 0, 0, 0]);
+    console.log("Deleting Plant with ID: ", plant_id);
+    console.log("Deleting Plant with name: ", plant);
+
+
+    //setRobotCmd([9, plant_id, 0, 0, 0]);
+    sendCommand(`CHA,9,${plant_id}`); // Send command to delete the plant
     
-    console.log("Deleting Plant: ", plant);
+    //console.log("Deleting Plant: ", plant);
 
     // Create a new array of plants without the deleted plant
     const newPlants = farmData.plants;
     delete newPlants[plant];
+
+    const newMissions = farmData.missions;
+    // Remove the plant from any missions that reference it
+    for (let mission of newMissions) {
+      if (mission.locations && mission.locations.includes(plant)) {
+        console.log(mission.locations)
+        mission.locations = mission.locations.filter(plant_name => plant_name !== plant);
+      }
+    }
+
+    console.log("New Missions after deletion: ", newMissions);
   
     // Create a new farmData object with the updated plants
     const newFarmData = {
       ...farmData,
-      plants: newPlants
+      plants: newPlants,
+      missions: newMissions
     };
   
     // Update the state with the new farmData object
@@ -98,7 +126,10 @@ function App() {
                   <Col>
                     <Row style={{padding: '0px 15px'}}>
                       <Col style={{padding: '2px 2px'}}>
-                        <ConnectivityComponent setRobotPos={setRobotPos} datatoSend={datatoSend} robotCmd={robotCmd} setFarmData={setFarmData}/>
+                        <ConnectivityComponent setRobotPos={setRobotPos} datatoSend={datatoSend} robotCmd={robotCmd} setFarmData={setFarmData} onSendCommand={(fn) => {
+    console.log("Setting command function", typeof fn);
+    sendCommandRef.current = fn;
+  }}/>
                       </Col>
                     </Row>
                   </Col>
@@ -106,13 +137,15 @@ function App() {
               </Col>
               <Col xs={5} style={{padding: '0px 15px'}}>
                 {/* link to issue page */}
-                <Button size="lg" variant="danger" style={{width: '50%'}}
+                {/* <Button size="lg" variant="danger" style={{width: '50%'}}
                 href="https://github.com/KacperLa/SpudBuddy/issues"
                 >
                   REPORT BUG
-                </Button>
-                <Button size="lg" variant="danger" style={{width: '50%'}}
-                href="https://github.com/KacperLa/SpudBuddy/issues"
+                </Button> */}
+                <Button size="lg" variant="danger" style={{width: '50%', position: 'end'}}
+                onClick={() => {
+                  setRobotCmd("STAP");
+                }}
                 >
                   EMERGENCY STOP
                 </Button>
@@ -131,7 +164,7 @@ function App() {
         </div>
 
         <OptionsView
-          position={{top: '8em', left: '30px'}}
+          position={{top: '15em', left: '30px'}}
           content={
             <div>
 
@@ -140,8 +173,8 @@ function App() {
                 <Button variant={plantView === "missions" ? "light" : "outline-light"} onClick={() => setPlantView("missions")}>Missions</Button>
               </ButtonGroup>
 
-              {(plantView === "plants" && farmData.plants != null) && <PlantPanel sendData={memoizedSetDatatoSend} deletePlant={deletePlant} robotPos={robotPos} farmData={farmData} setDesiredPos={setDesiredPos}/>}
-              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel sendData={memoizedSetDatatoSend} machineData={farmData} deleteMission={deleteMission} setDesiredPos={setDesiredPos} robotCmd={memoizedSetRobotCmd}/>}
+              {(plantView === "plants" && farmData.plants != null) && <PlantPanel sendData={memoizedSetDatatoSend} deletePlant={deletePlant} robotPos={robotPos} farmData={farmData} setDesiredPos={setDesiredPos} setFarmData={setFarmData} sendCommand={sendCommand}/>}
+              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel sendData={memoizedSetDatatoSend} machineData={farmData} setMachineData={setFarmData} deleteMission={deleteMission} setDesiredPos={setDesiredPos} robotCmd={memoizedSetRobotCmd} sendCommand={sendCommand}/>}
 
             </div>
           }
@@ -189,7 +222,7 @@ function App() {
         <OptionsView
           position={{bottom: '50px', right: '50px'}}
           content={
-            <MovementControlPanel desiredPos={desiredPos} setDesiredPos={setDesiredPos} setRobotCmd={setRobotCmd}/>
+            <MovementControlPanel desiredPos={desiredPos} setDesiredPos={setDesiredPos} setRobotCmd={setRobotCmd} setRobotPos={setRobotPos} robotPos = {robotPos}/>
           }
         />
     </>

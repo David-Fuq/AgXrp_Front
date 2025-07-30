@@ -57,7 +57,7 @@ const Farm = ({ size }) => {
   if (size[0] === 0 || size[1] === 0 ) return null;
 
   const onPointerClick = (event) => {
-    console.log("Farm clicked");
+    //console.log("Farm clicked");
   }
 
   return (
@@ -100,6 +100,18 @@ const Plants = ({plantData}) => {
   );
 };
 
+const SpudBuddyDummy = ({ position, color }) => {
+  return (
+    <mesh
+      position={position}
+    >
+      <sphereGeometry args={[.25, 32, .25]} />
+      <meshStandardMaterial color={color} />
+    </mesh>
+  );
+}
+
+
 const SpudBuddy = ({ position, color, setDesiredPos, isDraggable=false }) => {
   const spudRef = useRef();
   const [spudPos, setSpudPos] = useState(new THREE.Vector3(0, 0, 0));
@@ -108,27 +120,44 @@ const SpudBuddy = ({ position, color, setDesiredPos, isDraggable=false }) => {
   function moveSpud(newPos) {
     if(!isDraggable) return; 
     if(!moving) return;
-    setSpudPos([newPos.x, newPos.y, 0]);
+    //console.log("Moving spud to: ", newPos);
+    setSpudPos([newPos.x, newPos.y, 1]);
   }
 
   function onRelease() {
-    console.log("Spud clicked");
+    //console.log("DONDE ESTAR EL ERROR")
+    //console.log("Spud clicked");
+    //console.log("Spud position: ", spudPos);
+    if (setDesiredPos == null) return;
     setMoving(false);
-    setDesiredPos([Math.floor(spudPos[0] * 100), Math.floor(spudPos[1] * 100), 0]);
+    setDesiredPos([Math.floor(spudPos[0] * 100), Math.floor(spudPos[1] * 100), 1]);
   }
 
   useEffect(() => {
-    let new_spudPos = new THREE.Vector3(position[0]/100, position[1]/100, 0);
-    spudRef.current.position.copy(new_spudPos);
+    if (spudRef.current) {
+      // Convert position to a vector3 and ensure values are defined
+      const x = typeof position[0] === 'number' ? position[0]/100 : 0;
+      const y = typeof position[1] === 'number' ? position[1]/100 : 0;
+      const z = typeof position[2] === 'number' ? position[2] : 1;
+      
+      const new_spudPos = new THREE.Vector3(x, y, z);
+      spudRef.current.position.copy(new_spudPos);
+      
+      // Update internal state to match props
+      setSpudPos([x, y, z]);
+    }
   }, [position]);
 
   return (
     <mesh
       ref={spudRef}
       position={spudPos}
-      onPointerDown={() => setMoving(true)}
+      onPointerDown={() => {setMoving(true);
+        //console.log("jUST CLICKED SPUD");
+      }}
       onPointerUp={() => onRelease()}
       onPointerMove={(event) => moveSpud(event.point)}
+      onClick={() => onRelease()}
     >
       <sphereGeometry args={[.25, 32, .25]} />
       <meshStandardMaterial color={color} />
@@ -184,9 +213,14 @@ function ThreeView(props) {
       <Plants plantData={props.plantData}/>
 
       <Farm size={props.farmSize} />
-      <SpudBuddy position={props.robotPos} color="red"/>
       <SpudBuddy position={props.desiredPos} setDesiredPos={props.setDesiredPos} color="blue" isDraggable={true}/>
-
+      <SpudBuddy position={props.robotPos} color="orange"/>
+      <mesh
+      position={[0,0,0]}
+    >
+      <sphereGeometry args={[.25, 32, .25]} />
+      <meshStandardMaterial color={"red"} />
+    </mesh>
       <Path points={points} />
       
     </Canvas>

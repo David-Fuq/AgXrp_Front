@@ -1,73 +1,37 @@
 {
     "gantry_size": [
-        333.0923,
-        257.123
+        656.3539,
+        260.8
     ],
+    "plants": {
+        "raddish": {
+            "sense": [
+                462,
+                211
+            ],
+            "location": [
+                462,
+                211
+            ],
+            "moisture_threshhold": 0.2,
+            "ml_response": 30,
+            "id": 3
+        }
+    },
     "missions": [
         {
-            "mission_name": "mission_1",
-            "mission_id": 1,
-            "type": "sense_moisture",
-            "time": [
-                13,
-                15
-            ],
-            "locations": [
-                    "tomato_1",
-                    "spicy pepper 1"
-                ]
-        },
-        {
-            "mission_name": "mission_2",
-            "mission_id": 2,
-            "type": "water",
             "time": [
                 9,
                 30
             ],
+            "type": "water",
             "locations": [
-                    "tomato_1",
-                    "spicy pepper 1",
-                    "switch_1"
-                ]
+                "tomato_1",
+                "spicy pepper 1",
+                "switch_1"
+            ],
+            "mission_name": "mission_2",
+            "mission_id": 2
         }
-    ],
-    "plants": {
-        "tomato_1": {
-            "ml_response": 50,
-            "location": [
-                115,
-                100
-            ],
-            "sense": [
-                100,
-                100
-            ],
-            "moisture_threshhold": 0.5
-        },
-        "spicy pepper 1": {
-            "ml_response": 20,
-            "location": [
-                170,
-                30
-            ],
-            "sense": [
-                200.0,
-                25.0
-            ],
-            "moisture_threshhold": 0.4
-        },
-        "potato_1": {
-            "ml_response": 30,
-            "location": [
-                310,
-                120
-            ],
-            "sense": [
-                300,
-                100
-            ],
-            "moisture_threshhold": 0.2
-        }
-    }
+    ]
 }
