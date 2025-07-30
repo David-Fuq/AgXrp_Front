@@ -83,6 +83,9 @@ function App() {
   const deletePlant = useCallback((plant) => {
     const plant_id = farmData.plants[plant].id;
     console.log("Deleting Plant with ID: ", plant_id);
+    console.log("Deleting Plant with name: ", plant);
+
+
     //setRobotCmd([9, plant_id, 0, 0, 0]);
     sendCommand(`CHA,9,${plant_id}`); // Send command to delete the plant
     
@@ -91,11 +94,23 @@ function App() {
     // Create a new array of plants without the deleted plant
     const newPlants = farmData.plants;
     delete newPlants[plant];
+
+    const newMissions = farmData.missions;
+    // Remove the plant from any missions that reference it
+    for (let mission of newMissions) {
+      if (mission.locations && mission.locations.includes(plant)) {
+        console.log(mission.locations)
+        mission.locations = mission.locations.filter(plant_name => plant_name !== plant);
+      }
+    }
+
+    console.log("New Missions after deletion: ", newMissions);
   
     // Create a new farmData object with the updated plants
     const newFarmData = {
       ...farmData,
-      plants: newPlants
+      plants: newPlants,
+      missions: newMissions
     };
   
     // Update the state with the new farmData object

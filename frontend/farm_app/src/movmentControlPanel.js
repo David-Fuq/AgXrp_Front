@@ -5,7 +5,7 @@ import './movementControlPanel.css';
 
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowUp, faArrowDown, faArrowLeft, faArrowRight, faHome, faFaucetDrip, faArrowUpFromGroundWater} from '@fortawesome/free-solid-svg-icons'
+import { faArrowUp, faArrowDown, faArrowLeft, faArrowRight, faHome, faFaucetDrip, faArrowUpFromGroundWater, faAnchor} from '@fortawesome/free-solid-svg-icons'
 
 const RelativeMovementControlPanel = (props) => {
   const [movementIncrament, setMovementIncrament] = useState(1);
@@ -276,7 +276,12 @@ function MovementControlPanel(props) {
                           className="full-size-button"
                           size="lg"
                           variant="outline-light"
+                          onClick={() => {
+                            // First send command to the robot
+                            console.log("TODO: Implement lowering the z-axis manually")
+                          }}
                         >
+                          <FontAwesomeIcon icon={faAnchor}/>
                         </Button>
                       </td>
                       {/* <td  className="table-cell">
