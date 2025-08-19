@@ -23,9 +23,7 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
     const [showLogs, setShowLogs] = useState(false);
     const messageBufferRef = useRef(""); // Buffer to store incomplete messages
 
-    const [jsonData, setJsonData] = useState(null);
-    const [isCollectingJson, setIsCollectingJson] = useState(false);
-    const jsonBufferRef = useRef("");
+    
 
     const portRef = useRef(null);
     const writerRef = useRef(null);
@@ -39,7 +37,6 @@ function ConnectivityComponent({ robotCmd, datatoSend, setFarmData, setRobotPos,
     const USB_PRODUCT_ID_BETA = 5;
     const USB_VENDOR_ID = 6991;
     const USB_PRODUCT_ID = 70;
-    const XRP_SEND_BLOCK_SIZE = 250;
 
     // Control commands
     const CTRL_CMD_RAWMODE = "\x01";     // ctrl-A
